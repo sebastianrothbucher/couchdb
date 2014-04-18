@@ -29,6 +29,8 @@ function (app, FauxtonAPI, activetasks) {
   Views.Events = _.extend(Events, Backbone.Events);
 
   Views.TabMenu = FauxtonAPI.View.extend({
+    tagName: "nav",
+    className: "sidenav",
     template: "addons/activetasks/templates/tabs",
     events: {
       "click .task-tabs li": "requestByType",
