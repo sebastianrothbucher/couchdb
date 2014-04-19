@@ -317,7 +317,14 @@ body.loading #dialog h2 {
 #jumpto { float: right; padding: 5px 10px 5px 5px; line-height: 16px;
   font-weight: bold; color: #666; font-size: 90%; }
 
-#jumpto input { font-size: 90%; }
+#jumpto input { font-size: 90%; width: 80px; }
+
+/* Start of key */
+
+#startkey { float: right; padding: 5px 10px 5px 5px; line-height: 16px;
+  font-weight: bold; color: #666; font-size: 90%; }
+
+#startkey input { font-size: 90%; width: 80px; }
 
 /* View selector */
 
@@ -419,6 +426,13 @@ body.loading #dialog h2 {
   font: normal 10px Arial,Helvetica,sans-serif;
 }
 #documents tbody.content td.value { font-size: 10px; }
+
+/* Show doc selector */
+
+#shows { color: #666; font-size: 90%; font-weight: bold;
+  line-height: 16px; padding: 5px; float: right; margin-right: 200px; 
+}
+#shows select { font-size: 90%; }
 
 /* Document display tabs */
 

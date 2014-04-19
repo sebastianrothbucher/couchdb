@@ -45,7 +45,7 @@ specific language governing permissions and limitations under the License.
           }).join("/");
 
           $("h1 a.raw").attr("href", "/" + encodeURIComponent(page.db.name) +
-            "/" + viewPath);
+            "/" + viewPath + (page.viewFilter!=null?("?startkey="+encodeURIComponent("\""+page.viewFilter+"\"")+"&endkey="+encodeURIComponent("\""+page.viewFilter+"zzz\"")):""));
         }
 
         $("#viewcode span").click(function() {
@@ -88,7 +88,8 @@ specific language governing permissions and limitations under the License.
         var staleViews = !!$.futon.storage.get("stale");
         $("#staleviews :checkbox")[0].checked = staleViews;
 
-        page.populateViewsMenu();
+	page.populateViewsMenu();
+        $("#startkey input").val(page.viewFilter);
         page.populateViewEditor();
         if (page.isTempView) {
           $("#viewcode").show().removeClass("collapsed").find("textarea")[0].focus();
@@ -147,6 +148,50 @@ specific language governing permissions and limitations under the License.
             page.jumpToDocument($(this).val());
           }
         });
+
+	$('#startkey input').suggest(function(text, callback) {
+	  if(!page.viewName || page.viewName=="_all_docs"){
+            page.db.allDocs({
+              limit: 10, startkey: text, endkey: text + 'zzz',
+              success: function(docs) {
+                var matches = [];
+                for (var i = 0; i < docs.rows.length; i++) {
+                  if (docs.rows[i].id.indexOf(text) == 0) {
+                    matches[i] = docs.rows[i].id;
+                  }
+                }
+                callback(matches);
+              }
+            });
+	  }else if(page.viewName!="_temp_view" && page.viewName!="_design_docs" && (!page.isDirty)){
+	    var viewParts = decodeURIComponent(page.viewName).split('/');
+	    var options={limit: 10, startkey: text, endkey: text + 'zzz', 
+	      success: function(docs) {
+                var matches = [];
+                var matchind = 0;
+		for (var i = 0; i < docs.rows.length; i++) {
+                  if (docs.rows[i].key.indexOf(text) == 0) {
+                    matches[matchind++] = docs.rows[i].key;
+                  }
+                }
+                callback(matches);
+              }
+	    };
+            if ($.futon.storage.get("stale")) {
+              options.stale = "ok";
+            }
+            page.db.view(viewParts[1] + "/" + viewParts[3], options);
+          }
+        }).keypress(function(e) {
+          if (e.keyCode == 13) {
+            if(!page.viewName || page.viewName=="_all_docs"){
+	      location.href="database.html?" + encodeURIComponent(page.db.name) + "/_all_docs@" + encodeURIComponent($(this).val());
+            }else if(page.viewName!="_temp_view" && page.viewName!="_design_docs" && (!page.isDirty)){
+	      var viewParts = decodeURIComponent(page.viewName).split('/');
+	      location.href="database.html?" + encodeURIComponent(page.db.name) + "/_design/" + encodeURIComponent(viewParts[1]) + "/_view/"+ encodeURIComponent(viewParts[3]) + ($(this).val().length>0?("@" + encodeURIComponent($(this).val())):"");
+            }
+          }
+        });
       });
     </script>
   </head>
@@ -173,6 +218,11 @@ specific language governing permissions and limitations under the License.
       <div id="jumpto">
         <label>Jump to:
           <input type="text" name="docid" placeholder="Document ID" autocomplete="off" />
+        </label>
+      </div>
+      <div id="startkey">
+        <label>Key:
+	  <input type="text" name="startkeyval" placeholder="Start of key" autocomplete="off" />
         </label>
       </div>
       <ul id="toolbar">

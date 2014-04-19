@@ -568,7 +568,7 @@
          * @param {ajaxSettings} ajaxOptions <a href="http://api.jquery.com/
          * jQuery.ajax/#jQuery-ajax-settings">jQuery ajax settings</a>
          */
-        openDoc: function(docId, options, ajaxOptions) {
+        openDoc: function(docId, options, ajaxOptions, showUri) {
           options = options || {};
           if (db_opts.attachPrevRev || options.attachPrevRev) {
             $.extend(options, {
@@ -592,7 +592,7 @@
             });
           }
           return ajax(
-            {url: this.uri + encodeDocId(docId) + encodeOptions(options)},
+            {url: this.uri +(showUri!=null?(showUri+"/"):"") + encodeDocId(docId) + encodeOptions(options)},
             options,
             "The document could not be retrieved",
             ajaxOptions
