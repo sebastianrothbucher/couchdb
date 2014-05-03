@@ -347,7 +347,8 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
     serialize: function() {
       return {
         doc: this.model,
-        url: this.model.url('app')
+        url: this.model.url('app'),
+	linkUrl: this.model.linkUrl('app')
       };
     }
   });
@@ -735,6 +736,8 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
     initialize: function (options) {
       this.database = options.database;
       _.bindAll(this);
+      this.showDoc = options.showDoc;
+      this.showFkt = options.showFkt;
     },
     goback: function(){
       FauxtonAPI.navigate(this.database.url("index") + "?limit=100");
@@ -840,6 +843,9 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
     },
 
     saveDoc: function(event) {
+      if (this.showDoc && this.showFkt) {
+        return;
+      }
       var json, notification,
       that = this,
       editor = this.editor,
@@ -941,9 +947,20 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
           readOnly: true // false if this command should not apply in readOnly mode
         }]
       });
-      this.editor.render();
-      this.model.on("sync", this.updateValues, this);
 
+      this.editor.render();
+
+      if (this.showDoc && this.showFkt) {
+        var ths = this;
+        this.$('button.save-doc').attr("disabled","true");
+        this.editor.setReadOnly(true);
+	console.log("showfkt!!!");
+	// TODO: safe ID? have it loaded before?
+	$.ajax({url: "/"+this.database.safeID()+"/_design/"+this.showDoc+"/_show/"+this.showFkt+"/"+this.model.safeID(), dataType: "json", type: "GET", success: function(res) {ths.editor.setValue(JSON.stringify(res, null, "  ")); ths.editor.editSaved(); ths.showDoc=null; ths.showFkt=null;}});
+	return;
+      }
+      
+      this.model.on("sync", this.updateValues, this);
       var editor = this.editor,
           model = this.model;
 
@@ -1056,7 +1073,11 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
       "change form.js-view-query-update input": "updateFilters",
       "change form.js-view-query-update select": "updateFilters",
       "submit form.js-view-query-update": "updateView",
-      "click .toggle-btns > label":  "toggleQuery"
+      "click .toggle-btns > label":  "toggleQuery",
+      "change #startkey": "computeEndKey",
+      "keyup #startkey": "computeEndKey",
+      "click #startkeyopt": "toggleStartKeyOpt",
+      "click #startofkeyopt": "toggleStartOfKeyOpt"
     },
 
     toggleQuery: function(e){
@@ -1086,9 +1107,34 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
 
     showStartEnd: function(){
       this.$("#js-showStartEnd").show();
-      this.$('[name="startkey"],[name="endkey"],[name="inclusive_end"]').removeAttr("disabled");
+      this.$('[name="startkey"],[name="endkey"],[name="inclusive_end"],[id="startofkeyopt"]').removeAttr("disabled");
       this.$('.js-disabled-message').hide();
-      this.$('[name="keys"]').attr("disabled","true");
+      this.$('[name="keys"],[id="startkeyopt"]').attr("disabled","true");
+    },
+
+    computeEndKey: function(){
+      if (this.$('[id="startofkeyopt"]').attr("disabled")) {
+        this.$('[name="inclusive_end"]').prop("checked", true);
+	var startkey = this.$('[name="startkey"]').val();
+	if (startkey && startkey.length>0) {
+	  if (startkey.substring(startkey.length-1, startkey.length) == "\"") {
+            this.$('[name="endkey"]').val(startkey.substring(0, startkey.length-1)+'zzz"');
+	  } else {
+            this.$('[name="endkey"]').val(startkey+'zzz');
+	  }
+	}
+      }
+    },
+
+    toggleStartKeyOpt: function(){
+      this.$('[id="startofkeyopt"]').removeAttr("disabled");
+      this.$('[id="startkeyopt"]').attr("disabled","true");
+    },
+
+    toggleStartOfKeyOpt: function(){
+      this.$('[id="startkeyopt"]').removeAttr("disabled");
+      this.$('[id="startofkeyopt"]').attr("disabled","true");
+      this.computeEndKey();
     },
 
     beforeRender: function () {

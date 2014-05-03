@@ -272,6 +272,18 @@ function(app, FauxtonAPI, PagingCollection) {
 
       return app.utils.safeURLName(id);
     },
+    isLink: function() {
+      var id = this.id || this.get("id");
+      var value = this.value || this.get("value");
+
+      return value && value._id && value._id != id;
+    },
+    linkUrl: function(context) {
+      if (!this.isLink()) return this.url(context);
+
+      var value = this.value || this.get("value");
+      return this.collection.database.url(context) + "/" + app.utils.safeURLName(value._id);
+    },
 
     prettyJSON: function() {
       //var data = this.get("doc") ? this.get("doc") : this;
