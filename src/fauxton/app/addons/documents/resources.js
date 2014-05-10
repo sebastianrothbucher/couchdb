@@ -291,6 +291,35 @@ function(app, FauxtonAPI, PagingCollection) {
     }
   });
 
+  Documents.DocViaShow = Documents.Doc.extend({
+    url: function(context) {
+      var showPart =  "/_design/" + app.utils.safeURLName(this.showDoc) + "/_show/" + app.utils.safeURLName(this.showFkt);
+      if (context === "app") {
+        return this.getDatabase().url("app") + showPart + "/" + this.safeID();
+      } else if (context === "web-index") {
+        return this.getDatabase().url("app") + showPart + "/" + app.utils.safeURLName(this.id);
+      } else if (context === "apiurl"){
+        return window.location.origin + "/" + this.getDatabase().safeID() +showPart + "/" + this.safeID();
+      } else {
+        return app.host + "/" + this.getDatabase().safeID() + showPart + "/" + this.safeID();
+      }
+    },
+
+    initialize: function(_attrs, options) {
+      if (this.collection && this.collection.database) {
+        this.database = this.collection.database;
+      } else if (options.database) {
+        this.database = options.database;
+      }
+      this.showFkt = options.showFkt;
+      this.showDoc = options.showDoc;
+    },
+
+    isEditable: function() {
+      return false;
+    }	  
+  });
+
   Documents.NewDoc = Documents.Doc.extend({
     fetch: function() {
       var uuid = new FauxtonAPI.UUID();

@@ -736,8 +736,7 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
     initialize: function (options) {
       this.database = options.database;
       _.bindAll(this);
-      this.showDoc = options.showDoc;
-      this.showFkt = options.showFkt;
+      this.designDocs = options.designDocs;
     },
     goback: function(){
       FauxtonAPI.navigate(this.database.url("index") + "?limit=100");
@@ -843,7 +842,7 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
     },
 
     saveDoc: function(event) {
-      if (this.showDoc && this.showFkt) {
+      if (!this.model.isEditable()) {
         return;
       }
       var json, notification,
@@ -913,8 +912,22 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
     serialize: function() {
       return {
         doc: this.model,
+	shows: this.getShows(),
         attachments: this.getAttachments()
       };
+    },
+
+    getShows: function() {
+      var showRes=[];
+      this.designDocs.each(function(designDoc) {
+	var shows=designDoc.get('doc').shows;
+        if (shows) {
+          for (var show in shows) {
+            showRes.push({showDoc: designDoc.safeID().substring('_design/'.length), showFkt: app.utils.safeURLName(show)});
+          }
+        }
+      });
+      return showRes;
     },
 
     getAttachments: function () {
@@ -950,13 +963,9 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
 
       this.editor.render();
 
-      if (this.showDoc && this.showFkt) {
-        var ths = this;
+      if (!this.model.isEditable()) {
         this.$('button.save-doc').attr("disabled","true");
         this.editor.setReadOnly(true);
-	console.log("showfkt!!!");
-	// TODO: safe ID? have it loaded before?
-	$.ajax({url: "/"+this.database.safeID()+"/_design/"+this.showDoc+"/_show/"+this.showFkt+"/"+this.model.safeID(), dataType: "json", type: "GET", success: function(res) {ths.editor.setValue(JSON.stringify(res, null, "  ")); ths.editor.editSaved(); ths.showDoc=null; ths.showFkt=null;}});
 	return;
       }
       
@@ -1117,11 +1126,39 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
         this.$('[name="inclusive_end"]').prop("checked", true);
 	var startkey = this.$('[name="startkey"]').val();
 	if (startkey && startkey.length>0) {
-	  if (startkey.substring(startkey.length-1, startkey.length) == "\"") {
-            this.$('[name="endkey"]').val(startkey.substring(0, startkey.length-1)+'zzz"');
-	  } else {
-            this.$('[name="endkey"]').val(startkey+'zzz');
+	  var corekey = startkey;
+	  var prepend="";
+	  var append="";
+	  var isString = false;
+	  var morePrefix = true;
+	  while (morePrefix) {
+            morePrefix = false;
+	    var nextChar = corekey.substring(0, 1);
+            if (nextChar == "{" || nextChar == "[" || nextChar == "\"") {
+              prepend += nextChar;
+	      corekey = corekey.substring(1);
+	      morePrefix = true;
+              if (nextChar == "\"") {
+	        isString = true;
+	      }
+	    }
 	  }
+          var moreSuffix = true;
+	  while (moreSuffix) {
+            moreSuffix = false;
+	    var nextChar = corekey.substring(corekey.length-1, corekey.length);
+            if (nextChar == "]" || nextChar == "}" || nextChar == "\"") {
+              append = nextChar+append;
+	      corekey = corekey.substring(0, corekey.length-1);
+	      moreSuffix = true;
+              if (nextChar == "\"") {
+	        isString = true;
+	      }
+	    }
+	  }
+          this.$('[name="endkey"]').val(prepend+corekey+(isString ? 'zzz' : '999')+append);
+	} else {
+	  this.$('[name="endkey"]').val('');
 	}
       }
     },

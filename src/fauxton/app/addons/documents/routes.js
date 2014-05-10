@@ -70,7 +70,7 @@ function(app, FauxtonAPI, Documents, Databases) {
 
       this.docView = this.setView("#dashboard-content", new Documents.Views.Doc({
         model: this.doc,
-        database: this.database
+        database: this.database, "designDocs": this.obtainDesignDocs()
       }));
     },
 
@@ -78,11 +78,30 @@ function(app, FauxtonAPI, Documents, Databases) {
       this.tabsView.updateSelected('code_editor');
 
       this.docView = this.setView("#dashboard-content", new Documents.Views.Doc({
-        model: this.doc,
-        database: this.database,
-	showDoc: showDoc, 
-	showFkt: showFkt
+        model:  new Documents.DocViaShow({
+          _id: this.docID
+        }, {
+          database: this.database, "showDoc": showDoc, "showFkt": showFkt
+	}),
+        database: this.database, "designDocs": this.obtainDesignDocs()
       }));
+    },
+
+    obtainDesignDocs: function () {
+      var dDocCol = new Documents.AllDocs(null, {
+        database: this.database,
+        paging: {
+          pageSize: 500
+        },
+        params: {
+          startkey: '_design',
+          endkey: '_design1',
+          include_docs: true,
+          limit: 500
+        }
+      });
+      dDocCol.fetch();
+      return dDocCol;
     },
 
     reRenderDoc: function () {

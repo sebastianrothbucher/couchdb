@@ -22,21 +22,24 @@ the License.
   </div>
 
   <div class="span7">
+    <% if (shows.length!=0) { %>
     <div class="btn-group show-as">
       <button class="dropdown-toggle btn" data-bypass="true" data-toggle="dropdown">
-        Show as
+      Show as
         <span class="caret"></span>
       </button>
       <ul class="dropdown-menu">
         <li>
-	<a href="#/database/<%= doc.url().substring(6, doc.url().length-doc.id.length)+doc.id %>"> <strong> (as-is) </strong></a>
+	<a href="#/database/<%= doc.getDatabase().safeID()+'/'+doc.id %>"> <strong> (as-is) </strong></a>
         </li>
+      <%_.each(shows, function (show) { %>
         <li>
-        <a href="#/database/<%= doc.url().substring(6, doc.url().length-doc.id.length)+'_design/showfkt/_show/jsonout/'+doc.id %>"> <strong> showfkt/jsonout </strong></a>
+	<a href="#/database/<%= doc.getDatabase().safeID()+'/_design/'+show.showDoc+'/_show/'+show.showFkt+'/'+doc.id %>"> <strong> <%= show.showDoc+'/'+show.showFkt %> </strong></a>
         </li>
+      <% }) %> 
       </ul>
     </div>
-
+    <% } %> 
     <% if (attachments) { %>
     <div class="btn-group">
       <button class="dropdown-toggle btn" data-bypass="true" data-toggle="dropdown">
