@@ -349,7 +349,7 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
       return {
         doc: this.model,
         url: this.model.url('app'),
-	linkUrl: this.model.linkUrl('app')
+        linkUrl: this.model.linkUrl('app')
       };
     }
   });
@@ -913,15 +913,15 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
     serialize: function() {
       return {
         doc: this.model,
-	shows: this.getShows(),
+        shows: this.getShows(),
         attachments: this.getAttachments()
       };
     },
 
     getShows: function() {
-      var showRes=[];
+      var showRes = [];
       this.designDocs.each(function(designDoc) {
-	var shows=designDoc.get('doc').shows;
+	var shows = designDoc.get('doc').shows;
         if (shows) {
           for (var show in shows) {
             showRes.push({showDoc: designDoc.safeID().substring('_design/'.length), showFkt: app.utils.safeURLName(show)});
@@ -974,6 +974,7 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
       
       editor = this.editor;
       model = this.model;
+
       this.listenTo(this.model, "sync", this.updateValues);
       this.listenTo(editor.editor, "change", function (event) {
         var changedDoc;

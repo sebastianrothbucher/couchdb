@@ -29,7 +29,7 @@ function(app, FauxtonAPI, Documents, Databases) {
     initialize: function(route, masterLayout, options) {
       var databaseName = options[0];
       this.docID = options[1]||'new';
-      
+
       this.database = this.database || new Databases.Model({id: databaseName});
       this.doc = new Documents.Doc({
         _id: this.docID
