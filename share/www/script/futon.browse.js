@@ -147,12 +147,6 @@
       });
 
       var viewName = (urlParts.length > 0) ? urlParts.join("/") : null;
-      var viewFilter = null;
-      if(viewName!=null && viewName.indexOf('@')>0){
-        viewFilter = viewName.substring(viewName.indexOf('@')+1);
-	viewFilter = viewFilter.length==0?null:viewFilter;
-	viewName = viewName.substring(0, viewName.indexOf('@'));
-      }
       if (viewName) {
         $.futon.storage.set("view", decodeURIComponent(viewName));
       } else {
@@ -168,8 +162,6 @@
       this.dbName = dbName;
       viewName = decodeURIComponent(viewName);
       this.viewName = viewName;
-      viewFilter = (viewFilter==null?null:decodeURIComponent(viewFilter));
-      this.viewFilter = viewFilter;
       this.viewLanguage = "javascript";
       this.db = db;
       this.isDirty = false;
@@ -755,10 +747,10 @@
                 html: true, indent: 0, linesep: "", quoteKeys: false
               });
             }
-            $("<td class='value'><a href=\"document.html?"+((row.value!=null && row.value._id)?(encodeURIComponent(db.name)+"/"+$.couch.encodeDocId(row.value._id)):rowlink)+"\"></a><div></div></td>").find("div").html(value).end()
-              .appendTo(tr).dblclick(function(){
-                location.href = this.firstChild.href;
-	      });
+            $("<td class='value'><div></div></td>").find("div").html(value).end()
+              .appendTo(tr).dblclick(function() {
+                location.href = this.previousSibling.firstChild.href;
+              });
             tr.appendTo("#documents tbody.content");
           }
           var firstNum = 1;
@@ -793,10 +785,6 @@
 
         if (!viewName || viewName == "_all_docs") {
           $("#switch select")[0].selectedIndex = 0;
-	  if(viewFilter != null && (!options.startkey)){
-            options.startkey=viewFilter;
-            options.endkey=viewFilter+'zzz';
-	  }
           db.allDocs(options);
         } else {
           if (viewName == "_temp_view") {
@@ -845,10 +833,7 @@
               if ($.futon.storage.get("stale")) {
                  options.stale = "ok";
               }
-              if(viewFilter != null && (!options.startkey)){
-                options.startkey=viewFilter;
-		options.endkey=viewFilter+'zzz';
-              }
+
               db.view(viewParts[1] + "/" + viewParts[3], options);
             }
           }
@@ -872,16 +857,10 @@
       if (urlParts.length) {
         var idParts = urlParts.join("/").split("@", 2);
         var docId = decodeURIComponent(idParts[0]);
-	var showUri = null;
-	if(docId.indexOf("_design/")>=0 && docId.indexOf("_show/")>0){
-          showUri=docId.substring(0, docId.indexOf("/", docId.indexOf("_show/")+"_show/".length));
-	  docId=docId.substring(showUri.length+1);
-	}
         var docRev = (idParts.length > 1) ? idParts[1] : null;
         this.isNew = false;
       } else {
         var docId = $.couch.newUUID();
-	var showUri = null;
         var docRev = null;
         this.isNew = true;
       }
@@ -892,7 +871,6 @@
       this.dbName = dbName;
       this.db = db;
       this.docId = docId;
-      this.showUri = showUri;
       this.doc = null;
       this.isDirty = this.isNew;
       page = this;
@@ -916,10 +894,10 @@
         $("#fields tbody.content").hide();
         $("#fields tbody.source").find("td").each(function() {
           $(this).html($("<pre></pre>").html($.futon.formatJSON(page.doc, {html: true})))
-	    .makeEditable({allowEmpty: false,
+            .makeEditable({allowEmpty: false,
               createInput: function(value) {
                 var rows = value.split("\n").length;
-                return $("<textarea rows='" + rows + "' cols='80' spellcheck='false' "+(showUri?"readonly":"")+"></textarea>").enableTabInsertion();
+                return $("<textarea rows='" + rows + "' cols='80' spellcheck='false'></textarea>").enableTabInsertion();
               },
               prepareInput: function(input) {
                 $(input).makeResizable({vertical: true});
@@ -936,7 +914,6 @@
                 return $.futon.formatJSON(page.doc);
               },
               validate: function(value) {
-                if(showUri) return false;
                 try {
                   var doc = JSON.parse(value);
                   if (typeof doc != "object")
@@ -985,45 +962,6 @@
         }
       }
 
-      this.populateShowsMenu = function() {
-        var select = $("#shows select");
-        db.allDocs({startkey: "_design/", endkey: "_design0",
-          include_docs: true,
-          success: function(resp) {
-            select[0].options.length = 1;
-            for (var i = 0; i < resp.rows.length; i++) {
-              var doc = resp.rows[i].doc;
-              var optGroup = $(document.createElement("optgroup"))
-                .attr("label", doc._id.substr(8)).appendTo(select);
-              var showNames = [];
-              for (var name in doc.shows) {
-                showNames.push(name);
-              }
-              showNames.sort();
-              for (var j = 0; j < showNames.length; j++) {
-                var path = $.couch.encodeDocId(doc._id) + "/_show/" +
-                  encodeURIComponent(showNames[j]);
-                var option = $(document.createElement("option"))
-                  .attr("value", path).text(encodeURIComponent(showNames[j]))
-                  .appendTo(optGroup);
-                if (path == showUri) {
-                  option[0].selected = true;
-                }
-              }
-            }
-	    if (select[0].options.length <= 1) {
-              $("#shows")[0].style.display = "none";
-	    } else {
-              $("#shows")[0].style.display = "initial";
-	    }
-          }
-        });
-        if (showUri == null) {
-          select[0].options[0].selected = true;
-        }
-      }
-
-
       this.updateFieldListing = function(noReload) {
         $("#fields tbody.content").empty();
 
@@ -1070,43 +1008,30 @@
         }
 
         if (!page.isNew) {
-          if(showUri != null) {
-            db.openDoc(docId, {revs_info: true,
-              error: function(status, error, reason) {
-                alert("Error: " + error + "\n\n" + reason);
-              },
-              success: function(doc) {
-                delete doc._revs_info;
-		$("button.add").hide();
-                handleResult(doc, []);
+          db.openDoc(docId, {revs_info: true,
+            error: function(status, error, reason) {
+              alert("Error: " + error + "\n\n" + reason);
+            },
+            success: function(doc) {
+              var revs = doc._revs_info || [];
+              delete doc._revs_info;
+              if (docRev != null) {
+                db.openDoc(docId, {rev: docRev,
+                  error: function(status, error, reason) {
+                    alert("The requested revision was not found. You will " +
+                          "be redirected back to the latest revision.");
+                    location.href = "?" + encodeURIComponent(dbName) +
+                      "/" + $.couch.encodeDocId(docId);
+                  },
+                  success: function(doc) {
+                    handleResult(doc, revs);
+                  }
+                });
+              } else {
+                handleResult(doc, revs);
               }
-            }, null, showUri);
-          } else {
-            db.openDoc(docId, {revs_info: true,
-              error: function(status, error, reason) {
-                alert("Error: " + error + "\n\n" + reason);
-              },
-              success: function(doc) {
-                var revs = doc._revs_info || [];
-                delete doc._revs_info;
-                if (docRev != null) {
-                  db.openDoc(docId, {rev: docRev,
-                    error: function(status, error, reason) {
-                      alert("The requested revision was not found. You will " +
-                            "be redirected back to the latest revision.");
-                      location.href = "?" + encodeURIComponent(dbName) +
-                        "/" + $.couch.encodeDocId(docId);
-                    },
-                    success: function(doc) {
-                      handleResult(doc, revs);
-                    }
-                  });
-                } else {
-                  handleResult(doc, revs);
-                }
-              }
-            });
-	  }
+            }
+          });
         } else {
           handleResult({_id: docId}, []);
           $("#fields tbody td").dblclick();
@@ -1206,8 +1131,7 @@
           $("#fields tbody.content tr").removeClass("odd").filter(":odd").addClass("odd");
         }).prependTo(cell);
 
-        if(!showUri)
-	cell.find("b").makeEditable({allowEmpty: false,
+        cell.find("b").makeEditable({allowEmpty: false,
           accept: function(newName, oldName) {
             doc[newName] = doc[oldName];
             delete doc[oldName];
@@ -1226,7 +1150,6 @@
             }
           },
           validate: function(newName, oldName) {
-            if(showUri) return false;
             $("div.error", this).remove();
             if (newName != oldName && doc[newName] !== undefined) {
               $("<div class='error'>Already have field with that name.</div>")
@@ -1250,9 +1173,9 @@
             if (elem.find("dl").length > 0 ||
                 elem.find("code").is(".array, .object") ||
                 typeof(value) == "string" && (value.length > 60 || value.match(/\n/))) {
-              return $("<textarea rows='1' cols='40' spellcheck='false' "+(showUri?"readonly":"")+"></textarea>");
+              return $("<textarea rows='1' cols='40' spellcheck='false'></textarea>");
             }
-            return $("<input type='text' spellcheck='false' "+(showUri?"readonly":"")+">");
+            return $("<input type='text' spellcheck='false'>");
           },
           end: function() {
             $(this).children().remove();
@@ -1285,7 +1208,6 @@
             return $.futon.formatJSON(value);
           },
           validate: function(value) {
-            if(showUri) return false;
             $("div.error", this).remove();
             try {
               var parsed = JSON.parse(value);
