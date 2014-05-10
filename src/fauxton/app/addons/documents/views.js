@@ -111,8 +111,9 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
       this.database.destroy().then(function () {
         FauxtonAPI.navigate('#/_all_dbs');
         FauxtonAPI.addNotification({
-          msg: 'The database <code>' + databaseName + '</code> has been deleted.',
-          clear: true
+          msg: 'The database <code>' + _.escape(databaseName) + '</code> has been deleted.',
+          clear: true,
+          escape: false // beware of possible XSS when the message changes
         });
       }).fail(function (rsp, error, msg) {
         FauxtonAPI.addNotification({
@@ -946,7 +947,9 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
     },
 
     afterRender: function() {
-      var saveDoc = this.saveDoc;
+      var saveDoc = this.saveDoc,
+          editor,
+          model;
 
       this.editor = new Components.Editor({
         editorId: "editor-container",
@@ -969,11 +972,10 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
 	return;
       }
       
-      this.model.on("sync", this.updateValues, this);
-      var editor = this.editor,
-          model = this.model;
-
-      editor.editor.on("change", function (event) {
+      editor = this.editor;
+      model = this.model;
+      this.listenTo(this.model, "sync", this.updateValues);
+      this.listenTo(editor.editor, "change", function (event) {
         var changedDoc;
         try {
           changedDoc = JSON.parse(editor.getValue());
@@ -1673,13 +1675,12 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
         return params;
       }, {reduce: false});
 
-      event.preventDefault();
-
       FauxtonAPI.addNotification({
         msg: "<strong>Warning!</strong> Preview executes the Map/Reduce functions in your browser, and may behave differently from CouchDB.",
         type: "warning",
         selector: ".advanced-options .errors-container",
-        fade: true
+        fade: true,
+        escape: false // beware of possible XSS when the message changes
       });
 
       var promise = FauxtonAPI.Deferred();
