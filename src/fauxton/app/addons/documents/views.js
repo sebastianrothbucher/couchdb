@@ -731,7 +731,12 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
       "click button.duplicate": "duplicate",
       "click button.upload": "upload",
       "click button.cancel-button": "goback",
-      "click #expand_two": "expand_two"
+      "click #expand_1": "expand_until_1",
+      "click #expand_2": "expand_until_2",
+      "click #expand_3": "expand_until_3",
+      "click #expand_4": "expand_until_4",
+      "click #expand_5": "expand_until_5",
+      "click #expand_all": "expand_all"
     },
     disableLoader: true,
     initialize: function (options) {
@@ -772,7 +777,25 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
       });
     },
 
-    expand_two: function() {
+    expand_all: function() {
+      this.editor.editor.session.unfold();
+    },
+    expand_until_1: function() {
+      this.expand_until(1);
+    },
+    expand_until_2: function() {
+      this.expand_until(2);
+    },
+    expand_until_3: function() {
+      this.expand_until(3);
+    },
+    expand_until_4: function() {
+      this.expand_until(4);
+    },
+    expand_until_5: function() {
+      this.expand_until(5);
+    },
+    expand_until: function(untilLevel) {
       this.editor.editor.session.unfold();
       var level = 0;
       var foldstack=[];
@@ -781,7 +804,7 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
         if (range && range.isMultiLine()) {
           foldstack.push(range);
           level++;
-          if (!(level <= 2)) {
+          if (level > untilLevel) {
             this.editor.editor.session.addFold("...", range);
             i += (range.end.row - range.start.row);
           } 
