@@ -730,7 +730,8 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
       "click button.delete": "destroy",
       "click button.duplicate": "duplicate",
       "click button.upload": "upload",
-      "click button.cancel-button": "goback"
+      "click button.cancel-button": "goback",
+      "click #expand_two": "expand_two"
     },
     disableLoader: true,
     initialize: function (options) {
@@ -769,6 +770,27 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
           clear:  true
         });
       });
+    },
+
+    expand_two: function() {
+      this.editor.editor.session.unfold();
+      var level = 0;
+      var foldstack=[];
+      for (var i=0; i < this.editor.editor.session.getLength(); i++) {
+        var range = this.editor.editor.session.getFoldWidgetRange(i);
+        if (range && range.isMultiLine()) {
+          foldstack.push(range);
+          level++;
+          if (!(level <= 2)) {
+            this.editor.editor.session.addFold("...", range);
+            i += (range.end.row - range.start.row);
+          } 
+        }
+        if (foldstack.length > 0 && i == foldstack[foldstack.length-1].end.row) {
+          level--;
+          foldstack.pop();
+        }
+      }
     },
 
     beforeRender: function () {
