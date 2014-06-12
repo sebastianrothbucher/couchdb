@@ -22,6 +22,21 @@ the License.
   </div>
 
   <div class="span7">
+    <% if (true) { %>
+    <div class="btn-group">
+      <button class="dropdown-toggle btn" data-bypass="true" data-toggle="dropdown">
+        Revisions
+        <span class="caret"></span>
+      </button>
+      <ul class="dropdown-menu">
+        <%_.each(['2-testt', '1-test'], function (revision) { %>
+        <li>
+        <a href="<%- revision %>" target="_blank"> <strong> <%- revision %> </strong></a>
+        </li>
+        <% }) %>
+      </ul>
+    </div>
+    <% } %> 
     <% if (attachments) { %>
     <div class="btn-group">
       <button class="dropdown-toggle btn" data-bypass="true" data-toggle="dropdown">
