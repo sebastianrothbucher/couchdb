@@ -55,7 +55,7 @@ function(app, FauxtonAPI, PagingCollection) {
       } else if (context === "apiurl"){
         return window.location.origin + "/" + this.getDatabase().safeID() + "/" + this.safeID();
       } else {
-        return app.host + "/" + this.getDatabase().safeID() + "/" + this.safeID();
+        return app.host + "/" + this.getDatabase().safeID() + "/" + this.safeID() + "?revs_info=true";
       }
     },
 

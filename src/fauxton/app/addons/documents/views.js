@@ -908,9 +908,17 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
     serialize: function() {
       return {
         doc: this.model,
-        attachments: this.getAttachments()
+        attachments: this.getAttachments(), 
+	revisions: this.getAvailableRevisions()
       };
     },
+
+    getAvailableRevisions: function () {
+      var revsInfo = this.model.get('_revs_info');
+      if (!revsInfo) { return []; }
+
+      return revsInfo; 
+    }, 
 
     getAttachments: function () {
       var attachments = this.model.get('_attachments');
@@ -928,6 +936,9 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
     },
 
     afterRender: function() {
+      /* get rid of _revs_info for editing */
+      delete(this.model.attributes._revs_info);
+
       var saveDoc = this.saveDoc,
           editor,
           model;
@@ -948,7 +959,7 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
 
       editor = this.editor;
       model = this.model;
-
+     
       this.listenTo(this.model, "sync", this.updateValues);
       this.listenTo(editor.editor, "change", function (event) {
         var changedDoc;
