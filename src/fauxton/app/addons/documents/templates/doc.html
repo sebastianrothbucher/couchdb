@@ -29,9 +29,9 @@ the License.
         <span class="caret"></span>
       </button>
       <ul class="dropdown-menu">
-        <%_.each(['2-testt', '1-test'], function (revision) { %>
+        <%_.each(revisions, function (revision) { %>
         <li>
-        <a href="<%- revision %>" target="_blank"> <strong> <%- revision %> </strong></a>
+        <a href="<%- revision.rev %>" target="_blank"> <strong> <%- revision.rev %> </strong></a>
         </li>
         <% }) %>
       </ul>
