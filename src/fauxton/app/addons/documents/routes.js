@@ -49,7 +49,9 @@ function(app, FauxtonAPI, Documents, Databases) {
       // We are hiding the field_editor for this first release
       // "database/:database/:doc/field_editor": "field_editor",
       "database/:database/:doc/code_editor": "code_editor",
-      "database/:database/:doc": "code_editor"
+      "database/:database/:doc@:rev/code_editor": "code_editor",
+      "database/:database/:doc": "code_editor",
+      "database/:database/:doc@:rev": "code_editor"
     },
 
     events: {

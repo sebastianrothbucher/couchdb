@@ -907,7 +907,8 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
 
     serialize: function() {
       return {
-        doc: this.getDocWithoutRevisions(),
+        doc: this.model,
+        docForEdit: this.getDocWithoutRevisions(),
         attachments: this.getAttachments(), 
 	revisions: this.getAvailableRevisions()
       };
