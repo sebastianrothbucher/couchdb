@@ -34,7 +34,12 @@ function(app, FauxtonAPI, Documents, Databases) {
       this.doc = new Documents.Doc({
         _id: this.docID
       }, {
-        database: this.database,
+        database: this.database
+      });
+      this.revisionInfo = new Documents.RevisionInfo({
+        _id: this.docID
+      }, {
+        database: this.database
       });
 
       this.tabsView = this.setView("#tabs", new Documents.Views.FieldEditorTabs({
@@ -70,9 +75,16 @@ function(app, FauxtonAPI, Documents, Databases) {
       this.tabsView.updateSelected('code_editor');
 
       this.docView = this.setView("#dashboard-content", new Documents.Views.Doc({
-        model: this.doc,
+        model: (revision ? 
+          (new Documents.Doc({
+            _id: this.docID
+          }, {
+            database: this.database,
+            revision: revision
+          })) 
+          : this.doc),
         database: this.database, 
-        revision: revision
+        revisionInfo : (this.revisionInfo ? this.revisionInfo.ensureFetched() : null)
       }));
     },
 

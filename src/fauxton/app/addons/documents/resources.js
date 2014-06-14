@@ -47,17 +47,15 @@ function(app, FauxtonAPI, PagingCollection) {
     documentation: function(){
       return "docs";
     },
-    url: function(context, revision) {
+    url: function(context) {
       if (context === "app") {
-        return this.getDatabase().url("app") + "/" + this.safeID();
+        return this.getDatabase().url("app") + "/" + this.safeID() + (this.revision ? ("?rev=" + this.revision) : "");
       } else if (context === "web-index") {
-        return this.getDatabase().url("app") + "/" + app.utils.safeURLName(this.id);
+        return this.getDatabase().url("app") + "/" + app.utils.safeURLName(this.id) + (this.revision ? ("?rev=" + this.revision) : "");
       } else if (context === "apiurl"){
-        return window.location.origin + "/" + this.getDatabase().safeID() + "/" + this.safeID();
-      } else if (context === "doc_base"){
-        return app.host + "/" + this.getDatabase().safeID() + "/" + this.safeID();
+        return window.location.origin + "/" + this.getDatabase().safeID() + "/" + this.safeID() + (this.revision ? ("?rev=" + this.revision) : "");
       } else {
-        return app.host + "/" + this.getDatabase().safeID() + "/" + this.safeID() + "?revs_info=true";
+        return app.host + "/" + this.getDatabase().safeID() + "/" + this.safeID() + (this.revision ? ("?rev=" + this.revision) : "");
       }
     },
 
@@ -218,6 +216,52 @@ function(app, FauxtonAPI, PagingCollection) {
     isNewDoc: function () {
       return this.get('_rev') ? false : true;
     }
+  });
+
+  Documents.RevisionInfo = FauxtonAPI.Model.extend({
+    idAttribute: "_id",
+    documentation: function(){
+      return "docs";
+    },
+    initialize: function (_attrs, options) {
+      this.database = options.database;
+    },
+
+    url: function(context) {
+      if (context === "app") {
+        return this.database.url("app") + "/" + this.safeID() + '?revs_info=true';
+      } else if (context === "apiurl"){
+        return window.location.origin + "/" + this.database.safeID() + "/" + this.safeID() + '?revs_info=true';
+      } else {
+        return app.host + "/" + this.database.safeID() + "/" + this.safeID() + '?revs_info=true';
+      }
+    },
+
+    // Need this to work around backbone router thinking _design/foo
+    // is a separate route. Alternatively, maybe these should be
+    // treated separately. For instance, we could default into the
+    // json editor for docs, or into a ddoc specific page.
+    safeID: function() {
+      if (this.id.match(/^_design\//)){
+        var ddoc = this.id.replace(/^_design\//,"");
+        return "_design/"+app.utils.safeURLName(ddoc);
+      }else{
+        return app.utils.safeURLName(this.id);
+      }
+    }, 
+
+    ensureFetched: function() {
+      if (!this.fetched) {
+        this.fetched = true;
+	this.fetchOnce();
+      }
+      return this;
+    }, 
+
+    getRevisionInfo: function() {
+      return this.get('_revs_info');
+    }
+
   });
 
   Documents.DdocInfo = FauxtonAPI.Model.extend({

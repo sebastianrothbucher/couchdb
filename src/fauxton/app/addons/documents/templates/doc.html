@@ -22,14 +22,14 @@ the License.
   </div>
 
   <div class="span7">
-    <% if (true) { %>
+    <% if (!doc.isNewDoc()) { %>
     <div class="btn-group">
       <button class="dropdown-toggle btn" data-bypass="true" data-toggle="dropdown">
         Revisions
         <span class="caret"></span>
       </button>
       <ul class="dropdown-menu">
-        <li><a href="#/database/<%= doc.getDatabase().safeID()+'/'+doc.id %>"> <strong> (current) </strong></a></li>
+        <li><a href="#/database/<%= doc.getDatabase().safeID()+'/'+doc.id %>"> (most recent) </a></li>
         <%_.each(revisions, function (revision) { %>
 	<li>
 	<% if(revision.status === "available") { %>

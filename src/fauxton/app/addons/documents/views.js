@@ -735,6 +735,7 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
     disableLoader: true,
     initialize: function (options) {
       this.database = options.database;
+      this.revisionInfo = options.revisionInfo;
       _.bindAll(this);
     },
     goback: function(){
@@ -908,24 +909,11 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
     serialize: function() {
       return {
         doc: this.model,
-        docForEdit: this.getDocWithoutRevisions(),
+        docForEdit: this.model.attributes,
         attachments: this.getAttachments(), 
-	revisions: this.getRevisions()
+	revisions: ((this.model.isNewDoc() == false && this.revisionInfo) ? this.revisionInfo.getRevisionInfo() : [])
       };
     },
-
-    getDocWithoutRevisions: function () {
-       var docModified = JSON.parse(JSON.stringify(this.model.attributes));
-       delete(docModified._revs_info);
-       return docModified;
-    },
-
-    getRevisions: function () {
-      var revsInfo = this.model.get('_revs_info');
-      if (!revsInfo) { return []; }
-
-      return revsInfo; 
-    }, 
 
     getAttachments: function () {
       var attachments = this.model.get('_attachments');
@@ -937,7 +925,7 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
           fileName: key,
           size: att.length,
           contentType: att.content_type,
-          url: this.model.url('doc_base') + '/' + app.utils.safeURLName(key)
+          url: this.model.url() + '/' + app.utils.safeURLName(key)
         };
       }, this);
     },
