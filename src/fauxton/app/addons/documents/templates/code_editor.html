@@ -29,12 +29,12 @@ the License.
         <span class="caret"></span>
       </button>
       <ul class="dropdown-menu">
-        <li><a href="#/database/<%= doc.getDatabase().safeID()+'/'+doc.id %>"> (most recent) </a></li>
+        <li><a href="#/database/<%= doc.getDatabase().safeID()+'/'+doc.id %>"> <strong> (most recent) </strong> </a></li>
         <%_.each(revisions, function (revision) { %>
 	<li>
 	<% if(revision.status === "available") { %>
 	<a href="#/database/<%= doc.getDatabase().safeID()+'/'+doc.id+'@'+revision.rev %>"> <strong> <%- revision.rev %> </strong></a>
-	<% } else { %> <%- revision.rev %> <% } %>
+	<% } else { %> <a> <%- revision.rev %> </a> <% } %>
         </li>
         <% }) %>
       </ul>

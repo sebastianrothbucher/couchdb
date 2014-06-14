@@ -236,11 +236,11 @@ function(app, FauxtonAPI, PagingCollection) {
 
     url: function(context) {
       if (context === "app") {
-        return this.database.url("app") + "/" + this.safeID() + '?revs_info=true';
+        return this.database.url("app") + "/" + this.safeID() + '?revs_info=true&conflicts=true';
       } else if (context === "apiurl"){
-        return window.location.origin + "/" + this.database.safeID() + "/" + this.safeID() + '?revs_info=true';
+        return window.location.origin + "/" + this.database.safeID() + "/" + this.safeID() + '?revs_info=true&conflicts=true';
       } else {
-        return app.host + "/" + this.database.safeID() + "/" + this.safeID() + '?revs_info=true';
+        return app.host + "/" + this.database.safeID() + "/" + this.safeID() + '?revs_info=true&conflicts=true';
       }
     },
 
@@ -260,7 +260,7 @@ function(app, FauxtonAPI, PagingCollection) {
     ensureFetched: function() {
       if (!this.fetched) {
         this.fetched = true;
-	this.fetchOnce();
+	this.fetchOnce({async:false});
       }
       return this;
     }, 

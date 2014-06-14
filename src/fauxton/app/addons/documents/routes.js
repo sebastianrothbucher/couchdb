@@ -36,11 +36,13 @@ function(app, FauxtonAPI, Documents, Databases) {
       }, {
         database: this.database
       });
-      this.revisionInfo = new Documents.RevisionInfo({
-        _id: this.docID
-      }, {
-        database: this.database
-      });
+      if (options[1]) {
+        this.revisionInfo = new Documents.RevisionInfo({
+          _id: this.docID
+        }, {
+          database: this.database
+        });
+      }
 
     },
 
