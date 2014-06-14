@@ -77,13 +77,6 @@ FAUXTON_FILES = \
     fauxton/app/addons/contribute/base.js \
     fauxton/app/addons/exampleAuth/base.js \
     fauxton/app/addons/exampleAuth/templates/noAccess.html \
-    fauxton/app/addons/logs/base.js \
-    fauxton/app/addons/logs/resources.js \
-    fauxton/app/addons/logs/routes.js \
-    fauxton/app/addons/logs/templates/dashboard.html \
-    fauxton/app/addons/logs/templates/sidebar.html \
-    fauxton/app/addons/logs/tests/baseSpec.js \
-    fauxton/app/addons/logs/tests/resourcesSpec.js \
     fauxton/app/addons/permissions/assets/less/permissions.less \
     fauxton/app/addons/permissions/base.js \
     fauxton/app/addons/permissions/resources.js \
@@ -167,7 +160,6 @@ FAUXTON_FILES = \
     fauxton/app/addons/databases/templates/item.html \
     fauxton/app/addons/databases/templates/list.html \
     fauxton/app/addons/databases/templates/newdatabase.html \
-    fauxton/app/addons/databases/templates/sidebar.html \
     fauxton/app/addons/documents/templates/advanced_options.html \
     fauxton/app/addons/documents/templates/all_docs_item.html \
     fauxton/app/addons/documents/templates/all_docs_layout.html \
@@ -177,9 +169,7 @@ FAUXTON_FILES = \
     fauxton/app/addons/documents/templates/ddoc_info.html \
     fauxton/app/addons/documents/templates/delete_database_modal.html \
     fauxton/app/addons/documents/templates/design_doc_selector.html \
-    fauxton/app/addons/documents/templates/doc.html \
-    fauxton/app/addons/documents/templates/doc_field_editor.html \
-    fauxton/app/addons/documents/templates/doc_field_editor_tabs.html \
+    fauxton/app/addons/documents/templates/code_editor.html \
     fauxton/app/addons/documents/templates/duplicate_doc_modal.html \
     fauxton/app/addons/documents/templates/edit_tools.html \
     fauxton/app/addons/documents/templates/index_menu_item.html \
@@ -323,7 +313,6 @@ FAUXTON_FILES = \
     fauxton/app/addons/databases/assets/less/databases.less \
     fauxton/assets/less/fauxton.less \
     fauxton/assets/less/icons.less \
-    fauxton/app/addons/logs/assets/less/logs.less \
     fauxton/assets/less/prettyprint.less \
     fauxton/assets/less/variables.less \
     fauxton/bin/grunt \
@@ -353,6 +342,5 @@ FAUXTON_FILES = \
     fauxton/test/mocha/testUtils.js \
     fauxton/test/runner.html \
     fauxton/test/test.config.underscore \
-    fauxton/TODO.md \
     fauxton/CONTRIBUTING.md \
     fauxton/writing_addons.md

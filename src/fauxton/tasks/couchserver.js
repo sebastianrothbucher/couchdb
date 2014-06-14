@@ -25,7 +25,8 @@ module.exports = function (grunt) {
     // Options
     var dist_dir = options.dist || './dist/debug/',
         app_dir = './app',
-        port = options.port || 8000;
+        port = options.port || 8000,
+        setContentSecurityPolicy = _.isUndefined(options.contentSecurityPolicy) ? true : options.contentSecurityPolicy;
 
     // Proxy options with default localhost
     var proxy_settings = options.proxy || {
@@ -47,6 +48,12 @@ module.exports = function (grunt) {
           accept = req.headers.accept.split(','),
           filePath;
 
+      if (setContentSecurityPolicy) {
+        var headerValue = "default-src 'self'; img-src 'self'; font-src 'self'; " +
+                          "script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline';";
+        res.setHeader('Content-Security-Policy', headerValue);
+      }
+
       if (!!url.match(/^\/addons\/.*\/assets\/js/)) {
         filePath = path.join(app_dir, url.replace('/_utils/fauxton/',''));
       } else if (!!url.match(/assets/)) {
@@ -56,6 +63,7 @@ module.exports = function (grunt) {
       } else if (!!url.match(/mocha|\/test\/core\/|test\.config/)) {
         filePath = path.join('./test', url.replace('/test/',''));
       } else if (!!url.match(/\.css|img/)) {
+        url = url.replace(/\?.*/, '');
         filePath = path.join(dist_dir,url);
       /*} else if (!!url.match(/\/js\//)) {
         // serve any javascript or files from dist debug dir
@@ -87,7 +95,7 @@ module.exports = function (grunt) {
             res.end(JSON.stringify({error: err.message}));
           })
           .pipe(res);
-      } 
+      }
 
       proxy.proxyRequest(req, res);
     }).listen(port);

@@ -42,17 +42,9 @@ function(app, FauxtonAPI, Documents, Databases) {
         database: this.database
       });
 
-      this.tabsView = this.setView("#tabs", new Documents.Views.FieldEditorTabs({
-        disableLoader: true,
-        selected: "code_editor",
-        model: this.doc
-      }));
-
     },
 
     routes: {
-      // We are hiding the field_editor for this first release
-      // "database/:database/:doc/field_editor": "field_editor",
       "database/:database/:doc/code_editor": "code_editor",
       "database/:database/:doc@:revision/code_editor": "code_editor",
       "database/:database/:doc": "code_editor",
@@ -72,9 +64,8 @@ function(app, FauxtonAPI, Documents, Databases) {
     },
 
     code_editor: function (database, doc, revision) {
-      this.tabsView.updateSelected('code_editor');
 
-      this.docView = this.setView("#dashboard-content", new Documents.Views.Doc({
+      this.docView = this.setView("#dashboard-content", new Documents.Views.CodeEditor({
         model: (revision ? 
           (new Documents.Doc({
             _id: this.docID
@@ -92,17 +83,11 @@ function(app, FauxtonAPI, Documents, Databases) {
       this.docView.forceRender();
     },
 
-    field_editor: function(events) {
-      this.tabsView.updateSelected('field_editor');
-      this.docView = this.setView("#dashboard-content", new Documents.Views.DocFieldEditor({
-        model: this.doc
-      }));
-    },
-
     duplicateDoc: function (newId) {
       var doc = this.doc,
       docView = this.docView,
       database = this.database;
+      this.docID = newId;
 
       doc.copy(newId).then(function () {
         doc.set({_id: newId});
@@ -134,11 +119,6 @@ function(app, FauxtonAPI, Documents, Databases) {
       this.doc = new Documents.NewDoc(null,{
         database: this.database
       });
-
-      this.tabsView = this.setView("#tabs", new Documents.Views.FieldEditorTabs({
-        selected: "code_editor",
-        model: this.doc
-      }));
 
     },
     crumbs: function() {
@@ -209,10 +189,12 @@ function(app, FauxtonAPI, Documents, Databases) {
     },
 
     createParams: function (options) {
-      var urlParams = Documents.QueryParams.parse(app.getParams(options));
+      var urlParams = app.getParams(options);
+      var params = Documents.QueryParams.parse(urlParams);
+
       return {
         urlParams: urlParams,
-        docParams: _.extend(_.clone(urlParams), {limit: this.getDocPerPageLimit(urlParams, 20)})
+        docParams: _.extend(params, {limit: this.getDocPerPageLimit(params, 20)})
       };
     },
 
@@ -256,9 +238,11 @@ function(app, FauxtonAPI, Documents, Databases) {
       }));
 
       this.documentsView = this.setView("#dashboard-lower-content", new Documents.Views.AllDocsList({
+        database: this.data.database,
         collection: this.data.database.allDocs,
         docParams: docParams,
-        params: urlParams
+        params: urlParams,
+        bulkDeleteDocsCollection: new Documents.BulkDeleteDocCollection([], {databaseId: this.data.database.get('id')})
       }));
 
       this.crumbs = [
