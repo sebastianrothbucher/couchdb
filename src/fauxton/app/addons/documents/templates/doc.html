@@ -29,9 +29,12 @@ the License.
         <span class="caret"></span>
       </button>
       <ul class="dropdown-menu">
+        <li><a href="#/database/<%= doc.getDatabase().safeID()+'/'+doc.id %>"> <strong> (current) </strong></a></li>
         <%_.each(revisions, function (revision) { %>
-        <li>
-        <a href="#/database/<%= doc.getDatabase().safeID()+'/'+doc.id+'@'+revision.rev %>" target="_blank"> <strong> <%- revision.rev %> </strong></a>
+	<li>
+	<% if(revision.status === "available") { %>
+	<a href="#/database/<%= doc.getDatabase().safeID()+'/'+doc.id+'@'+revision.rev %>"> <strong> <%- revision.rev %> </strong></a>
+	<% } else { %> <%- revision.rev %> <% } %>
         </li>
         <% }) %>
       </ul>
@@ -46,7 +49,7 @@ the License.
       <ul class="dropdown-menu">
         <%_.each(attachments, function (att) { %>
         <li>
-        <a href="<%- att.url %>" target="_blank"> <strong> <%- att.fileName %> </strong> -
+        <a href="<%- att.url %>" target="_blank" data-bypass="true"> <strong> <%- att.fileName %> </strong> -
           <span> <%- att.contentType %>, <%- formatSize(att.size)%> </span>
         </a>
         </li>

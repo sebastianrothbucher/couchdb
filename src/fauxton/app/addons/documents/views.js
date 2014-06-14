@@ -910,7 +910,7 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
         doc: this.model,
         docForEdit: this.getDocWithoutRevisions(),
         attachments: this.getAttachments(), 
-	revisions: this.getAvailableRevisions()
+	revisions: this.getRevisions()
       };
     },
 
@@ -920,7 +920,7 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
        return docModified;
     },
 
-    getAvailableRevisions: function () {
+    getRevisions: function () {
       var revsInfo = this.model.get('_revs_info');
       if (!revsInfo) { return []; }
 
@@ -937,7 +937,7 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
           fileName: key,
           size: att.length,
           contentType: att.content_type,
-          url: this.model.url() + '/' + app.utils.safeURLName(key)
+          url: this.model.url('doc_base') + '/' + app.utils.safeURLName(key)
         };
       }, this);
     },

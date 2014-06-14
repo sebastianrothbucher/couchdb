@@ -47,13 +47,15 @@ function(app, FauxtonAPI, PagingCollection) {
     documentation: function(){
       return "docs";
     },
-    url: function(context) {
+    url: function(context, revision) {
       if (context === "app") {
         return this.getDatabase().url("app") + "/" + this.safeID();
       } else if (context === "web-index") {
         return this.getDatabase().url("app") + "/" + app.utils.safeURLName(this.id);
       } else if (context === "apiurl"){
         return window.location.origin + "/" + this.getDatabase().safeID() + "/" + this.safeID();
+      } else if (context === "doc_base"){
+        return app.host + "/" + this.getDatabase().safeID() + "/" + this.safeID();
       } else {
         return app.host + "/" + this.getDatabase().safeID() + "/" + this.safeID() + "?revs_info=true";
       }
@@ -65,6 +67,7 @@ function(app, FauxtonAPI, PagingCollection) {
       } else if (options.database) {
         this.database = options.database;
       }
+      this.revision = options.revision;
     },
 
     // HACK: the doc needs to know about the database, but it may be

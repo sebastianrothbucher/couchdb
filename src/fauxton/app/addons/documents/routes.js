@@ -28,13 +28,13 @@ function(app, FauxtonAPI, Documents, Databases) {
     selectedHeader: "Databases",
     initialize: function(route, masterLayout, options) {
       var databaseName = options[0];
-      this.docID = options[1]||'new';
-
+      this.docID = options[1] || 'new';
+      
       this.database = this.database || new Databases.Model({id: databaseName});
       this.doc = new Documents.Doc({
         _id: this.docID
       }, {
-        database: this.database
+        database: this.database,
       });
 
       this.tabsView = this.setView("#tabs", new Documents.Views.FieldEditorTabs({
@@ -49,9 +49,9 @@ function(app, FauxtonAPI, Documents, Databases) {
       // We are hiding the field_editor for this first release
       // "database/:database/:doc/field_editor": "field_editor",
       "database/:database/:doc/code_editor": "code_editor",
-      "database/:database/:doc@:rev/code_editor": "code_editor",
+      "database/:database/:doc@:revision/code_editor": "code_editor",
       "database/:database/:doc": "code_editor",
-      "database/:database/:doc@:rev": "code_editor"
+      "database/:database/:doc@:revision": "code_editor"
     },
 
     events: {
@@ -66,12 +66,13 @@ function(app, FauxtonAPI, Documents, Databases) {
       ];
     },
 
-    code_editor: function (database, doc) {
+    code_editor: function (database, doc, revision) {
       this.tabsView.updateSelected('code_editor');
 
       this.docView = this.setView("#dashboard-content", new Documents.Views.Doc({
         model: this.doc,
-        database: this.database
+        database: this.database, 
+        revision: revision
       }));
     },
 
