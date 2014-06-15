@@ -1017,7 +1017,7 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
 
       editor = this.editor;
       model = this.model;
-     
+
       this.listenTo(this.model, "sync", this.updateValues);
       this.listenTo(editor.editor, "change", function (event) {
         var changedDoc;
