@@ -260,7 +260,7 @@ function(app, FauxtonAPI, PagingCollection) {
     ensureFetched: function() {
       if (!this.fetched) {
         this.fetched = true;
-	this.fetchOnce({async:false});
+	this.fetch({async:false});
       }
       return this;
     }, 
