@@ -934,7 +934,7 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
         doc: this.model,
         docForEdit: this.model.attributes,
         attachments: this.getAttachments(), 
-	revisions: ((this.model.isNewDoc() == false && this.revisionInfo) ? this.revisionInfo.getRevisionInfo() : [])
+	revisions: ((this.model.isNewDoc() === false && this.revisionInfo) ? this.revisionInfo.getRevisionInfo() : [])
       };
     },
 
