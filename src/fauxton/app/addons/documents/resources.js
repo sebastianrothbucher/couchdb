@@ -267,6 +267,14 @@ function(app, FauxtonAPI, PagingCollection) {
 
     getRevisionInfo: function() {
       return this.get('_revs_info');
+    }, 
+    
+    getConflicts: function() {
+      return this.get('_conflicts');
+    }, 
+
+    getHighestRevision: function() {
+      return this.get('_rev');
     }
 
   });

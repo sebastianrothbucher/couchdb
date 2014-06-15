@@ -934,7 +934,7 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
         doc: this.model,
         docForEdit: this.model.attributes,
         attachments: this.getAttachments(), 
-	revisions: ((this.model.isNewDoc() === false && this.revisionInfo) ? this.revisionInfo.getRevisionInfo() : [])
+	revisions: this.getRevisions()
       };
     },
 
@@ -952,6 +952,48 @@ function(app, FauxtonAPI, Components, Documents, Databases, pouchdb,
         };
       }, this);
     },
+
+    getRevisions: function () {
+      if (this.model.isNewDoc() || (!this.revisionInfo)) {
+        return [];    
+      }
+      var resultInfo = [];
+      var highestSeqInt = parseInt(this.revisionInfo.getHighestRevision().split("-")[0]);
+      var currentSeqInt = parseInt(this.model.get("_rev").split("-")[0]);
+      /* reorder conflicts so they can be mixed in more easily */
+      var conflictsBySeq = {};
+      var conflicts = this.revisionInfo.getConflicts() || [];
+      for (var i = 0; i < conflicts.length; i++) {
+        var conflict = conflicts[i];
+        var conflictSeq = conflict.split("-")[0];
+        if (!conflictsBySeq[conflictSeq]) {
+          conflictsBySeq[conflictSeq] = [];
+	}
+	conflictsBySeq[conflictSeq].push(conflict);
+      }
+      /* we qualify if we are 5 or less from highest, or 5 or less from current, or there is at least one conflict with our sequence. We add spacers to make things more clear */
+      var prevSeq = null;
+      var revInfos = this.revisionInfo.getRevisionInfo();
+      for (var i = 0; i < revInfos.length; i++) {
+        var revInfo = revInfos[i];
+        var revSeq = revInfo.rev.split("-")[0];
+	if (parseInt(revSeq) > (highestSeqInt - 5) || (parseInt(revSeq) <= currentSeqInt && parseInt(revSeq) > (currentSeqInt - 5)) || conflictsBySeq[revSeq]) {
+          if (prevSeq != null && (parseInt(prevSeq)-1) != parseInt(revSeq)) {
+            resultInfo.push({spacer: true});
+	  }
+	  resultInfo.push({rev: revInfo.rev, available: (revInfo.status === "available")});
+	  if (conflictsBySeq[revSeq]) {
+            var conflictRevs =  conflictsBySeq[revSeq]; 
+	    for (var j = 0; j < conflictRevs.length; j++) {
+             var conflictRev = conflictRevs[j];
+             resultInfo.push({rev: conflictRev, available: true, conflict: true});
+	    }
+	  }
+          prevSeq = revSeq;
+	}
+      }
+      return resultInfo;
+    }, 
 
     afterRender: function() {
 
