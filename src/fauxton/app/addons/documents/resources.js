@@ -234,6 +234,9 @@ function(app, FauxtonAPI, PagingCollection) {
       this.database = options.database;
     },
 
+	  // IDEA: load with parent doc (establish)
+	  // TODO: test with update on looser rev ;-) (e.g. PUT)
+
     url: function(context) {
       if (context === "app") {
         return this.database.url("app") + "/" + this.safeID() + '?revs_info=true&conflicts=true';
