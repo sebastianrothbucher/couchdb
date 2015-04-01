@@ -367,7 +367,8 @@ function run_on_modified_server(settings, fun) {
     // set the settings
     for(var i=0; i < settings.length; i++) {
       var s = settings[i];
-      var xhr = CouchDB.request("PUT", "/_config/" + s.section + "/" + s.key, {
+      var localbaseuri = 'http://localhost:15986';
+      var xhr = CouchDB.request("PUT", localbaseuri + "/_config/" + s.section + "/" + s.key, {
         body: JSON.stringify(s.value),
         headers: {"X-Couch-Persist": "false"}
       });
@@ -381,11 +382,11 @@ function run_on_modified_server(settings, fun) {
     for(var j=0; j < i; j++) {
       var s = settings[j];
       if(s.oldValue == "\"\"\n") { // unset value
-        CouchDB.request("DELETE", "/_config/" + s.section + "/" + s.key, {
+        CouchDB.request("DELETE", localbaseuri + "/_config/" + s.section + "/" + s.key, {
           headers: {"X-Couch-Persist": "false"}
         });
       } else {
-        CouchDB.request("PUT", "/_config/" + s.section + "/" + s.key, {
+        CouchDB.request("PUT", localbaseuri + "/_config/" + s.section + "/" + s.key, {
           body: s.oldValue,
           headers: {"X-Couch-Persist": "false"}
         });
