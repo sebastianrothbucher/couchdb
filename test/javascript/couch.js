@@ -357,7 +357,7 @@ CouchDB.getVersion = function() {
 };
 
 CouchDB.reloadConfig = function() {
-  CouchDB.last_req = CouchDB.request("POST", "/_config/_reload");
+  CouchDB.last_req = CouchDB.request("POST", "http://localhost:15986/_config/_reload");
   CouchDB.maybeThrowError(CouchDB.last_req);
   return JSON.parse(CouchDB.last_req.responseText);
 };
