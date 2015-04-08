@@ -16,23 +16,13 @@ couchTests.all_docs = function(debug) {
   db.createDb();
   if (debug) debugger;
 
-  function wait(ms) {
-    var t0 = new Date(), t1;
-    do {
-      CouchDB.request("GET", "/");
-      t1 = new Date();
-    } while ((t1 - t0) <= ms);
-  }
-
   // Create some more documents.
   // Notice the use of the ok member on the return result.
-  T(db.save({_id:"0",a:1,b:1}).ok);
-  T(db.save({_id:"3",a:4,b:16}).ok);
-  T(db.save({_id:"1",a:2,b:4}).ok);
-  T(db.save({_id:"2",a:3,b:9}).ok);
-
-  // wait for the cluster to re-balance
-  wait(250);
+  // we have to force full write quorum to avoid Heisenbugs
+  T(db.save({_id:"0",a:1,b:1},{"w":3}).ok);
+  T(db.save({_id:"3",a:4,b:16},{"w":3}).ok);
+  T(db.save({_id:"1",a:2,b:4},{"w":3}).ok);
+  T(db.save({_id:"2",a:3,b:9},{"w":3}).ok);
 
   // Check the all docs
   var results = db.allDocs();
@@ -83,10 +73,9 @@ couchTests.all_docs = function(debug) {
   // check that deletions also show up right
   // deterministic sequence - you know ;-)
   var doc1 = db.open("1");
-  var deleted = db.deleteDoc(doc1);
+  // we have to force full write quorum to avoid Heisenbugs
+  var deleted = db.deleteDoc(doc1,{"w":3});
   T(deleted.ok);
-  // wait for the cluster to re-balance
-  wait(500);
   changes = db.changes();
   // the deletion should make doc id 1 have deletion
   T(changes.results.length == 4);
@@ -104,9 +93,8 @@ couchTests.all_docs = function(debug) {
   // do an update
   var doc2 = db.open("3");
   doc2.updated = "totally";
-  db.save(doc2);
-  // wait for the cluster to re-balance
-  wait(500);
+  // full write quorum - you know ;-)
+  db.save(doc2,{"w":3});
   changes = db.changes();
 
   // the update should make doc id 3 have the last seq num
@@ -162,10 +150,8 @@ couchTests.all_docs = function(debug) {
   var conflictDoc2 = {
     _id: "3", _rev: "2-ff01552213fafa022e6167113ed01087", value: "Z"
   };
-  T(db.save(conflictDoc1, {new_edits: false}));
-  T(db.save(conflictDoc2, {new_edits: false}));
-  // wait for the cluster - you know ;-)
-  wait(500);
+  T(db.save(conflictDoc1, {new_edits: false, "w":3}));
+  T(db.save(conflictDoc2, {new_edits: false, "w":3}));
 
   var winRev = db.open("3");
 
@@ -197,8 +183,8 @@ couchTests.all_docs = function(debug) {
   TEquals(2, rows[2].doc._conflicts.length);
 
   // test the all docs collates sanely
-  db.save({_id: "Z", foo: "Z"});
-  db.save({_id: "a", foo: "a"});
+  db.save({_id: "Z", foo: "Z"},{"w":3});
+  db.save({_id: "a", foo: "a"},{"w":3});
 
   var rows = db.allDocs({startkey: "Z", endkey: "Z"}).rows;
   T(rows.length == 1);
