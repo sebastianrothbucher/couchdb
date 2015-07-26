@@ -72,7 +72,8 @@ eunit: couch
 javascript: all
 	@mkdir -p share/www/script/test
 	@cp test/javascript/tests/lorem*.txt share/www/script/test/
-	@dev/run -q test/javascript/run
+	# 2 remedy problems w/ "internal server error" remove dev/lib
+	@dev/run -n 1 -q test/javascript/run
 
 fauxton: share/www
 

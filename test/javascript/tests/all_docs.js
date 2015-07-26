@@ -18,11 +18,10 @@ couchTests.all_docs = function(debug) {
 
   // Create some more documents.
   // Notice the use of the ok member on the return result.
-  // we have to force full write quorum to avoid Heisenbugs
-  T(db.save({_id:"0",a:1,b:1},{"w":3}).ok);
-  T(db.save({_id:"3",a:4,b:16},{"w":3}).ok);
-  T(db.save({_id:"1",a:2,b:4},{"w":3}).ok);
-  T(db.save({_id:"2",a:3,b:9},{"w":3}).ok);
+  T(db.save({_id:"0",a:1,b:1}).ok);
+  T(db.save({_id:"3",a:4,b:16}).ok);
+  T(db.save({_id:"1",a:2,b:4}).ok);
+  T(db.save({_id:"2",a:3,b:9}).ok);
 
   // Check the all docs
   var results = db.allDocs();
@@ -49,92 +48,49 @@ couchTests.all_docs = function(debug) {
   TEquals(0, raw.rows.length);
 
   // check that the docs show up in the seq view in the order they were created
-  // cluster can't guarantee a deterministic sequence! - we rather have to check whether every item is there exactly once
   var changes = db.changes();
-  var ids = [];
+  var ids = ["0","3","1","2"];
   for (var i=0; i < changes.results.length; i++) {
     var row = changes.results[i];
-    ids.push(row.id);
+    T(row.id == ids[i], "seq order");
   };
-  ids.sort();
-  T(JSON.stringify(ids) == JSON.stringify(["0", "1", "2", "3"]), "seq once");
 
   // it should work in reverse as well
-  // deterministic sequence applies here as well
   changes = db.changes({descending:true});
-  ids = [];
+  ids = ["2","1","3","0"];
   for (var i=0; i < changes.results.length; i++) {
     var row = changes.results[i];
-    ids.push(row.id);
+    T(row.id == ids[i], "descending=true");
   };
-  ids.sort();
-  T(JSON.stringify(ids) == JSON.stringify(["0", "1", "2", "3"]), "seq once");
 
   // check that deletions also show up right
-  // deterministic sequence - you know ;-)
   var doc1 = db.open("1");
-  // we have to force full write quorum to avoid Heisenbugs
-  var deleted = db.deleteDoc(doc1,{"w":3});
+  var deleted = db.deleteDoc(doc1);
   T(deleted.ok);
   changes = db.changes();
-  // the deletion should make doc id 1 have deletion
+  // the deletion should make doc id 1 have the last seq num
   T(changes.results.length == 4);
-  var chgdoc1=null;
-  for(var i=0; i < changes.results.length; i++) {
-    if(changes.results[i].id == "1") {
-      chgdoc1=changes.results[i];
-      break;
-    }
-  }
-  T(chgdoc1!=null);
-  T(chgdoc1.id == "1");
-  T(chgdoc1.deleted);
+  T(changes.results[3].id == "1");
+  T(changes.results[3].deleted);
 
   // do an update
   var doc2 = db.open("3");
   doc2.updated = "totally";
-  // full write quorum - you know ;-)
-  db.save(doc2,{"w":3});
+  db.save(doc2);
   changes = db.changes();
 
   // the update should make doc id 3 have the last seq num
   T(changes.results.length == 4);
-  var chgdoc3=null;
-  for(var i=0; i < changes.results.length; i++) {
-    if(changes.results[i].id == "3") {
-      chgdoc3=changes.results[i];
-      break;
-    }
-  }
-  T(chgdoc3!=null);
-  T(chgdoc3.id == "3");
+  T(changes.results[3].id == "3");
 
   // ok now lets see what happens with include docs
   changes = db.changes({include_docs: true});
   T(changes.results.length == 4);
-  chgdoc3=null;
-  for(var i=0; i < changes.results.length; i++) {
-    if(changes.results[i].id == "3") {
-      chgdoc3=changes.results[i];
-      break;
-    }
-  }
-  T(chgdoc3!=null);
-  T(chgdoc3.id == "3");
-  T(chgdoc3.doc);
-  T(chgdoc3.doc.updated == "totally", "update not incl");
+  T(changes.results[3].id == "3");
+  T(changes.results[3].doc.updated == "totally");
 
-  chgdoc1=null;
-  for(var i=0; i < changes.results.length; i++) {
-    if(changes.results[i].id == "1") {
-      chgdoc1=changes.results[i];
-      break;
-    }
-  }
-  T(chgdoc1!=null);
-  T(chgdoc1.id == "1");
-  T(chgdoc1.doc);
-  T(chgdoc1.doc._deleted);
+  T(changes.results[2].doc);
+  T(changes.results[2].doc._deleted);
 
   rows = db.allDocs({include_docs: true}, ["1"]).rows;
   TEquals(1, rows.length);
@@ -150,27 +106,19 @@ couchTests.all_docs = function(debug) {
   var conflictDoc2 = {
     _id: "3", _rev: "2-ff01552213fafa022e6167113ed01087", value: "Z"
   };
-  T(db.save(conflictDoc1, {new_edits: false, "w":3}));
-  T(db.save(conflictDoc2, {new_edits: false, "w":3}));
+  T(db.save(conflictDoc1, {new_edits: false}));
+  T(db.save(conflictDoc2, {new_edits: false}));
 
   var winRev = db.open("3");
 
   changes = db.changes({include_docs: true, conflicts: true, style: "all_docs"});
-  chgdoc3=null;
-  for(var i=0; i < changes.results.length; i++) {
-    if(changes.results[i].id == "3") {
-      chgdoc3=changes.results[i];
-      break;
-    }
-  }
-  T(chgdoc3!=null);
-  T(chgdoc3.id == "3");
-  TEquals(3, chgdoc3.changes.length);
-  TEquals(winRev._rev, chgdoc3.changes[0].rev);
-  TEquals("3", chgdoc3.doc._id);
-  TEquals(winRev._rev, chgdoc3.doc._rev);
-  TEquals(true, chgdoc3.doc._conflicts instanceof Array);
-  TEquals(2, chgdoc3.doc._conflicts.length);
+  TEquals("3", changes.results[3].id);
+  TEquals(3, changes.results[3].changes.length);
+  TEquals(winRev._rev, changes.results[3].changes[0].rev);
+  TEquals("3", changes.results[3].doc._id);
+  TEquals(winRev._rev, changes.results[3].doc._rev);
+  TEquals(true, changes.results[3].doc._conflicts instanceof Array);
+  TEquals(2, changes.results[3].doc._conflicts.length);
 
   rows = db.allDocs({include_docs: true, conflicts: true}).rows;
   TEquals(3, rows.length);
@@ -183,8 +131,8 @@ couchTests.all_docs = function(debug) {
   TEquals(2, rows[2].doc._conflicts.length);
 
   // test the all docs collates sanely
-  db.save({_id: "Z", foo: "Z"},{"w":3});
-  db.save({_id: "a", foo: "a"},{"w":3});
+  db.save({_id: "Z", foo: "Z"});
+  db.save({_id: "a", foo: "a"});
 
   var rows = db.allDocs({startkey: "Z", endkey: "Z"}).rows;
   T(rows.length == 1);
