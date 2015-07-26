@@ -48,30 +48,45 @@ couchTests.all_docs = function(debug) {
   TEquals(0, raw.rows.length);
 
   // check that the docs show up in the seq view in the order they were created
+  // cluster can't guarantee a deterministic sequence! - we rather have to check whether every item is there exactly once
   var changes = db.changes();
-  var ids = ["0","3","1","2"];
+  var ids = [];
   for (var i=0; i < changes.results.length; i++) {
     var row = changes.results[i];
-    T(row.id == ids[i], "seq order");
+    //T(row.id == ids[i], "seq order");
+    ids.push(row.id);
   };
+  ids.sort();
+  T(JSON.stringify(ids) == JSON.stringify(["0", "1", "2", "3"]), "seq once");
 
   // it should work in reverse as well
   changes = db.changes({descending:true});
-  ids = ["2","1","3","0"];
+  ids = [];
   for (var i=0; i < changes.results.length; i++) {
     var row = changes.results[i];
-    T(row.id == ids[i], "descending=true");
+    //T(row.id == ids[i], "descending=true");
+    ids.push(row.id);
   };
+  ids.sort();
+  T(JSON.stringify(ids) == JSON.stringify(["0", "1", "2", "3"]), "seq once");
 
   // check that deletions also show up right
   var doc1 = db.open("1");
   var deleted = db.deleteDoc(doc1);
   T(deleted.ok);
   changes = db.changes();
-  // the deletion should make doc id 1 have the last seq num
+  // the deletion should make doc id 1 be deleted 
   T(changes.results.length == 4);
-  T(changes.results[3].id == "1");
-  T(changes.results[3].deleted);
+  var chgdoc1=null;
+  for(var i=0; i < changes.results.length; i++) {
+    if(changes.results[i].id == "1") {
+      chgdoc1=changes.results[i];
+      break;
+    }
+  }
+  T(chgdoc1!=null);
+  T(chgdoc1.id == "1");
+  T(chgdoc1.deleted);
 
   // do an update
   var doc2 = db.open("3");
@@ -79,18 +94,44 @@ couchTests.all_docs = function(debug) {
   db.save(doc2);
   changes = db.changes();
 
-  // the update should make doc id 3 have the last seq num
+  // the update should make doc id 3 be updated
   T(changes.results.length == 4);
-  T(changes.results[3].id == "3");
+  var chgdoc3=null;
+  for(var i=0; i < changes.results.length; i++) {
+    if(changes.results[i].id == "3") {
+      chgdoc3=changes.results[i];
+      break;
+    }
+  }
+  T(chgdoc3!=null);
+  T(chgdoc3.id == "3");
 
   // ok now lets see what happens with include docs
   changes = db.changes({include_docs: true});
   T(changes.results.length == 4);
-  T(changes.results[3].id == "3");
-  T(changes.results[3].doc.updated == "totally");
+  chgdoc3=null;
+  for(var i=0; i < changes.results.length; i++) {
+    if(changes.results[i].id == "3") {
+      chgdoc3=changes.results[i];
+      break;
+    }
+  }
+  T(chgdoc3!=null);
+  T(chgdoc3.id == "3");
+  T(chgdoc3.doc);
+  T(chgdoc3.doc.updated == "totally", "update not incl");
 
-  T(changes.results[2].doc);
-  T(changes.results[2].doc._deleted);
+  chgdoc1=null;
+  for(var i=0; i < changes.results.length; i++) {
+    if(changes.results[i].id == "1") {
+      chgdoc1=changes.results[i];
+      break;
+    }
+  }
+  T(chgdoc1!=null);
+  T(chgdoc1.id == "1");
+  T(chgdoc1.doc);
+  T(chgdoc1.doc._deleted);
 
   rows = db.allDocs({include_docs: true}, ["1"]).rows;
   TEquals(1, rows.length);
@@ -112,13 +153,21 @@ couchTests.all_docs = function(debug) {
   var winRev = db.open("3");
 
   changes = db.changes({include_docs: true, conflicts: true, style: "all_docs"});
-  TEquals("3", changes.results[3].id);
-  TEquals(3, changes.results[3].changes.length);
-  TEquals(winRev._rev, changes.results[3].changes[0].rev);
-  TEquals("3", changes.results[3].doc._id);
-  TEquals(winRev._rev, changes.results[3].doc._rev);
-  TEquals(true, changes.results[3].doc._conflicts instanceof Array);
-  TEquals(2, changes.results[3].doc._conflicts.length);
+  chgdoc3=null;
+  for(var i=0; i < changes.results.length; i++) {
+    if(changes.results[i].id == "3") {
+      chgdoc3=changes.results[i];
+      break;
+    }
+  }
+  T(chgdoc3!=null);
+  T(chgdoc3.id == "3");
+  TEquals(3, chgdoc3.changes.length);
+  TEquals(winRev._rev, chgdoc3.changes[0].rev);
+  TEquals("3", chgdoc3.doc._id);
+  TEquals(winRev._rev, chgdoc3.doc._rev);
+  TEquals(true, chgdoc3.doc._conflicts instanceof Array);
+  TEquals(2, chgdoc3.doc._conflicts.length);
 
   rows = db.allDocs({include_docs: true, conflicts: true}).rows;
   TEquals(3, rows.length);
