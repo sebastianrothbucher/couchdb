@@ -61,16 +61,10 @@ Debian-based Systems
 
 You can install the dependencies by running:
 
-    sudo apt-get install build-essential
-    sudo apt-get install erlang-base-hipe
-    sudo apt-get install erlang-dev
-    sudo apt-get install erlang-manpages
-    sudo apt-get install erlang-eunit
-    sudo apt-get install erlang-nox
-    sudo apt-get install libicu-dev
-    sudo apt-get install libmozjs185-dev
-    sudo apt-get install libcurl4-openssl-dev
-    sudo apt-get install pkg-config
+    sudo apt-get install build-essential erlang-base-hipe \
+        erlang-dev erlang-manpages erlang-eunit erlang-nox \
+        libicu-dev libmozjs185-dev libcurl4-openssl-dev \
+        pkg-config rebar
 
 There are lots of Erlang packages. If there is a problem with your
 install, try a different mix. There is more information on the
@@ -94,21 +88,10 @@ RedHat-based (Fedora, Centos, RHEL) Systems
 
 You can install the dependencies by running:
 
-    sudo yum install autoconf
-    sudo yum install autoconf-archive
-    sudo yum install automake
-    sudo yum install curl-devel
-    sudo yum install erlang-asn1
-    sudo yum install erlang-erts
-    sudo yum install erlang-eunit
-    sudo yum install erlang-os_mon
-    sudo yum install erlang-xmerl
-    sudo yum install erlang-rebar
-    sudo yum install help2man
-    sudo yum install js-devel
-    sudo yum install libicu-devel
-    sudo yum install libtool
-    sudo yum install perl-Test-Harness
+    sudo yum install autoconf autoconf-archive automake \
+        curl-devel erlang-asn1 erlang-erts erlang-eunit \
+        erlang-os_mon erlang-xmerl erlang-rebar help2man \
+        js-devel libicu-devel libtool perl-Test-Harness
 
 While CouchDB builds against the default js-devel-1.7.0 included in
 some distributions, it's recommended to use a more recent
@@ -124,16 +107,8 @@ the Command Line Tools:
 
 You can then install the other dependencies by running:
 
-    brew install autoconf
-    brew install autoconf-archive
-    brew install automake
-    brew install libtool
-    brew install erlang
-    brew install icu4c
-    brew install spidermonkey
-    brew install curl
-    brew install pkg-config
-    brew install rebar
+    brew install autoconf autoconf-archive automake libtool \
+        erlang icu4c spidermonkey curl pkg-config rebar
 
 You will need Homebrew installed to use the `brew` command.
 
@@ -146,6 +121,16 @@ you're experiencing troubles with CouchDB crashing intermittently with
 a segmentation fault or a bus error, you will need to install your own
 version of OpenSSL. See the troubleshooting guide, mentioned above,
 for more information.
+
+FreeBSD
+-------
+
+FreeBSD requires the use of GNU Make. Where `make` is specified in this
+documentation, substitute `gmake`.
+
+You can install this by running:
+
+    pkg install gmake
 
 Installing
 ----------
@@ -180,31 +165,8 @@ If everything was successful you should see the following message:
 
 Relax.
 
-First Run
----------
-
-You can start the CouchDB server by running:
-
-    sudo -i -u couchdb couchdb
-
-This uses the `sudo` command to run the `couchdb` command as the
-`couchdb` user.
-
-When CouchDB starts it should eventually display the following
-message:
-
-    Apache CouchDB has started, time to relax.
-
-Relax.
-
-To check that everything has worked, point your web browser to:
-
-    http://127.0.0.1:5984/_utils/index.html
-
-From here you should run the test suite in Firefox.
-
-Security Considerations
------------------------
+User Registration
+-----------------
 
 You should create a special `couchdb` user for CouchDB.
 
@@ -250,6 +212,29 @@ Change the permission of the CouchDB directories by running:
 Update the permissions for your `default.ini` file:
 
     chmod 0644 /usr/local/etc/couchdb/default.ini
+
+First Run
+---------
+
+You can start the CouchDB server by running:
+
+    sudo -i -u couchdb couchdb
+
+This uses the `sudo` command to run the `couchdb` command as the
+`couchdb` user.
+
+When CouchDB starts it should eventually display the following
+message:
+
+    Apache CouchDB has started, time to relax.
+
+Relax.
+
+To check that everything has worked, point your web browser to:
+
+    http://127.0.0.1:5984/_utils/index.html
+
+From here you should run the test suite in Firefox.
 
 Running as a Daemon
 -------------------

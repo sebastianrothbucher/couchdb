@@ -23,10 +23,10 @@ DepDescs = [
     {config,            "config",           {branch, "master"}},
     {chttpd,            "chttpd",           {branch, "master"}},
     {couch,             "couch",            {branch, "master"}},
+    {couch_epi,         "couch-epi",        {branch, "master"}},
     {couch_index,       "couch-index",      {branch, "master"}},
     {couch_mrview,      "couch-mrview",     {branch, "master"}},
     {couch_replicator,  "couch-replicator", {branch, "master"}},
-    {couch_dbupdates,   "couch-dbupdates",  {branch, "master"}},
     {couch_plugins,     "couch-plugins",    {branch, "master"}},
     {couch_event,       "couch-event",      {branch, "master"}},
     {couch_stats,       "couch-stats",      {branch, "master"}},
@@ -68,7 +68,7 @@ MakeDep = fun
 end,
 
 AddConfig = [
-    {require_otp_vsn, "R14B01|R14B03|R14B04|R16B02|R16B03-1|17"},
+    {require_otp_vsn, "R14B01|R14B03|R14B04|R16B02|R16B03-1|17|18"},
     {deps_dir, "src"},
     {deps, lists:map(MakeDep, DepDescs)},
     {sub_dirs, ["rel"]},

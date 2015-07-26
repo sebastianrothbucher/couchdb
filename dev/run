@@ -13,10 +13,12 @@
 # the License.
 
 import atexit
+import base64
 import contextlib
 import functools
 import glob
 import inspect
+import json
 import optparse
 import os
 import re
@@ -50,13 +52,13 @@ def log(msg):
                     sys.stdout.flush()
             callargs = dict(zip(inspect.getargspec(func).args, args))
             callargs.update(kwargs)
-            print_(msg.format(**callargs) + '... ')
+            print_('[ * ] ' + msg.format(**callargs) + ' ... ')
             try:
                 res = func(*args, **kwargs)
             except KeyboardInterrupt:
                 print_('ok\n')
-            except:
-                print_('failed\n')
+            except Exception as err:
+                print_('failed: %s\n' % err)
                 raise
             else:
                 print_('ok\n')
@@ -72,7 +74,7 @@ def main():
     if ctx['cmd']:
         run_command(ctx, ctx['cmd'])
     else:
-        join(ctx)
+        join(ctx, 15984, *ctx['admin'])
 
 
 def setup():
@@ -99,13 +101,23 @@ def setup_argparse():
     parser.add_option("-q", "--quiet",
                       action="store_false", dest="verbose", default=True,
                       help="Don't print anything to STDOUT")
+    parser.add_option('--with-admin-party-please',
+                      dest='with_admin_party', default=False,
+                      action='store_true',
+                      help='Runs a dev cluster with admin party mode on')
+    parser.add_option('--no-join',
+                      dest='no_join', default=False,
+                      action='store_true',
+                      help='Do not join nodes on boot')
     return parser.parse_args()
 
 
 def setup_context(opts, args):
     fpath = os.path.abspath(__file__)
     return {'N': opts.nodes,
-            'admin': opts.admin,
+            'no_join': opts.no_join,
+            'with_admin_party': opts.with_admin_party,
+            'admin': opts.admin.split(':', 1) if opts.admin else None,
             'nodes': ['node%d' % (i + 1) for i in range(opts.nodes)],
             'devdir': os.path.dirname(fpath),
             'rootdir': os.path.dirname(os.path.dirname(fpath)),
@@ -146,7 +158,8 @@ def setup_configs(ctx):
                                                 "lib", node, "data"),
             "node_name": "-name %s@127.0.0.1" % node,
             "cluster_port": cluster_port,
-            "backend_port": backend_port
+            "backend_port": backend_port,
+            "fauxton_root": "src/fauxton/dist/release"
         }
         write_config(ctx, node, env)
 
@@ -204,12 +217,23 @@ def hack_local_ini(ctx, contents):
     secret_line = "secret = %s\n" % COMMON_SALT
     previous_line = "; require_valid_user = false\n"
     contents = contents.replace(previous_line, previous_line + secret_line)
-    # if --admin user:password on invocation, make sure all three nodes
-    # have the same hashed password
-    if ctx['admin'] is None:
+
+    if ctx['with_admin_party']:
+        ctx['admin'] = ('Admin Party!', 'You do not need any password.')
         return contents
-    usr, pwd = ctx['admin'].split(":", 1)
-    return contents + "\n%s = %s" % (usr, hashify(pwd))
+
+    # handle admin credentials passed from cli or generate own one
+    if ctx['admin'] is None:
+        ctx['admin'] = user, pswd = 'root', gen_password()
+    else:
+        user, pswd = ctx['admin']
+
+    return contents + "\n%s = %s" % (user, hashify(pswd))
+
+
+def gen_password():
+    # TODO: figure how to generate something more friendly here
+    return base64.b64encode(os.urandom(6)).decode()
 
 
 def hashify(pwd, salt=COMMON_SALT, iterations=10, keylen=20):
@@ -230,7 +254,13 @@ def hashify(pwd, salt=COMMON_SALT, iterations=10, keylen=20):
 def startup(ctx):
     atexit.register(kill_processes, ctx)
     boot_nodes(ctx)
-    join_nodes(ctx, "127.0.0.1", 15986)
+    ensure_all_nodes_alive(ctx)
+    if ctx['no_join']:
+        return
+    if ctx['with_admin_party']:
+        cluster_setup_with_admin_party(ctx)
+    else:
+        cluster_setup(ctx)
 
 
 def kill_processes(ctx):
@@ -243,30 +273,44 @@ def boot_nodes(ctx):
     for node in ctx['nodes']:
         ctx['procs'].append(boot_node(ctx, node))
 
-    ensure_nodes_stated(ctx)
 
-
-@log('Ensure all nodes are run')
-def ensure_nodes_stated(ctx):
-    for _ in range(30):
-        if all_nodes_alive(ctx):
-            break
-        time.sleep(1)
-
-
-def all_nodes_alive(ctx):
-    for num in range(ctx['N']):
-        local_port, _ = get_ports(num + 1)
-        url = "http://127.0.0.1:{0}/".format(local_port)
-        while True:
-            try:
-                with contextlib.closing(urlopen(url)):
-                    pass
-            except IOError:
-                time.sleep(0.25)
+def ensure_all_nodes_alive(ctx):
+    status = dict((num, False) for num in range(ctx['N']))
+    for _ in range(10):
+        for num in range(ctx['N']):
+            if status[num]:
                 continue
+            local_port, _ = get_ports(num + 1)
+            url = "http://127.0.0.1:{0}/".format(local_port)
+            try:
+                check_node_alive(url)
+            except:
+                pass
+            else:
+                status[num] = True
+        if all(status.values()):
+            return
+        time.sleep(1)
+    if not all(status.values()):
+        print('Failed to start all the nodes.'
+              ' Check the dev/logs/*.log for errors.')
+        sys.exit(1)
+
+
+@log('Check node at {url}')
+def check_node_alive(url):
+    error = None
+    for _ in range(10):
+        try:
+            with contextlib.closing(urlopen(url)):
+                pass
+        except Exception as exc:
+            error = exc
+            time.sleep(1)
+        else:
             break
-    return True
+    if error is not None:
+        raise error
 
 
 @log('Start node {node}')
@@ -295,20 +339,113 @@ def boot_node(ctx, node):
     return sp.Popen(cmd, stdin=sp.PIPE, stdout=log, stderr=sp.STDOUT, env=env)
 
 
-@log('Join nodes into cluster')
-def join_nodes(ctx, host, port):
+@log('Running cluster setup')
+def cluster_setup(ctx):
+    lead_port, _ = get_ports(1)
+    if enable_cluster(lead_port, *ctx['admin']):
+        for num in range(1, ctx['N']):
+            node_port, _ = get_ports(num + 1)
+            enable_cluster(node_port, *ctx['admin'])
+            add_node(lead_port, node_port, *ctx['admin'])
+        finish_cluster(lead_port, *ctx['admin'])
+    return lead_port
+
+
+def enable_cluster(port, user, pswd):
+    conn = httpclient.HTTPConnection('127.0.0.1', port)
+    conn.request('POST', '/_cluster_setup',
+                 json.dumps({'action': 'enable_cluster',
+                             'bind_address': '0.0.0.0',
+                             'username': user,
+                             'password': pswd}),
+                 {'Authorization': basic_auth_header(user, pswd),
+                  'Content-Type': 'application/json'})
+    resp = conn.getresponse()
+    if resp.status == 400:
+        resp.close()
+        return False
+    assert resp.status == 201, resp.read()
+    resp.close()
+    return True
+
+
+def add_node(lead_port, node_port, user, pswd):
+    conn = httpclient.HTTPConnection('127.0.0.1', lead_port)
+    conn.request('POST', '/_cluster_setup',
+                 json.dumps({'action': 'add_node',
+                             'host': '127.0.0.1',
+                             'port': node_port,
+                             'username': user,
+                             'password': pswd}),
+                 {'Authorization': basic_auth_header(user, pswd),
+                  'Content-Type': 'application/json'})
+    resp = conn.getresponse()
+    assert resp.status in (201, 409), resp.read()
+    resp.close()
+
+
+def set_cookie(port, user, pswd):
+    conn = httpclient.HTTPConnection('127.0.0.1', port)
+    conn.request('POST', '/_cluster_setup',
+                 json.dumps({'action': 'receive_cookie',
+                             'cookie': generate_cookie()}),
+                 {'Authorization': basic_auth_header(user, pswd),
+                  'Content-Type': 'application/json'})
+    resp = conn.getresponse()
+    assert resp.status == 201, resp.read()
+    resp.close()
+
+
+def finish_cluster(port, user, pswd):
+    conn = httpclient.HTTPConnection('127.0.0.1', port)
+    conn.request('POST', '/_cluster_setup',
+                 json.dumps({'action': 'finish_cluster'}),
+                 {'Authorization': basic_auth_header(user, pswd),
+                  'Content-Type': 'application/json'})
+    resp = conn.getresponse()
+    # 400 for already set up'ed cluster
+    assert resp.status in (201, 400), resp.read()
+    resp.close()
+
+
+def basic_auth_header(user, pswd):
+    return 'Basic ' + base64.b64encode((user + ':' + pswd).encode()).decode()
+
+
+def generate_cookie():
+    return base64.b64encode(os.urandom(12)).decode()
+
+
+def cluster_setup_with_admin_party(ctx):
+    host, port = '127.0.0.1', 15986
     for node in ctx['nodes']:
-        body = "{}"
+        body = '{}'
         conn = httpclient.HTTPConnection(host, port)
-        conn.request("PUT", "/_nodes/%s@127.0.0.1" % node, body)
+        conn.request('PUT', "/_nodes/%s@127.0.0.1" % node, body)
         resp = conn.getresponse()
         if resp.status not in (200, 201, 202, 409):
-            print('Failed to join %s into cluster' % node, resp.reason)
-            exit(1)
+            print('Failed to join %s into cluster: %s' % (node, resp.read()))
+            sys.exit(1)
+    create_system_databases(host, 15984)
 
 
-@log('Developers cluster is set up at http://127.0.0.1:15984. Time to hack!')
-def join(ctx):
+def create_system_databases(host, port):
+    for dbname in ['_users', '_replicator', '_metadata', '_global_changes']:
+        conn = httpclient.HTTPConnection(host, port)
+        conn.request('HEAD', '/' + dbname)
+        resp = conn.getresponse()
+        if resp.status == 404:
+            conn = httpclient.HTTPConnection(host, port)
+            conn.request('PUT', '/' + dbname)
+            resp = conn.getresponse()
+            assert resp.status in (201, 202), resp.read()
+
+
+@log('Developers cluster is set up at http://127.0.0.1:{lead_port}.\n'
+     'Admin username: {user}\n'
+     'Password: {password}\n'
+     'Time to hack!')
+def join(ctx, lead_port, user, password):
     while True:
         for proc in ctx['procs']:
             if proc.returncode is not None:
@@ -332,6 +469,7 @@ def run_command(ctx, cmd):
 def reboot_nodes(ctx):
     kill_processes(ctx)
     boot_nodes(ctx)
+    ensure_all_nodes_alive(ctx)
 
 
 if __name__ == "__main__":
