@@ -37,7 +37,7 @@ couchTests.attachment_names = function(debug) {
   var binAttDoc = {
     _id: "bin_doc",
     _attachments:{
-      "foo\x80txt": {
+      "foo\u0080txt": {
         content_type:"text/plain",
         data: "VGhpcyBpcyBhIGJhc2U2NCBlbmNvZGVkIHRleHQ="
       }
@@ -66,9 +66,11 @@ couchTests.attachment_names = function(debug) {
   var docs = { docs: [binAttDoc] };
 
   var xhr = CouchDB.request("POST", "/test_suite_db/_bulk_docs", {
+    headers: {"Content-Type":"application/json;charset=utf-8"},
     body: JSON.stringify(docs)
   });
 
+  // on CentOS, the socket is arbitrarily closed - while the exact same works with curl
   TEquals(201, xhr.status, "attachment_name: bulk docs");
 
 
@@ -88,7 +90,7 @@ couchTests.attachment_names = function(debug) {
     TEquals(1, 2, "Attachment name with leading underscore saved. Should never show!");
   } catch (e) {
     TEquals("bad_request", e.error, "attachment_name: leading underscore");
-    TEquals("Attachment name can't start with '_'", e.reason, "attachment_name: leading underscore");
+    TEquals("Attachment name '_foo.txt' starts with prohibited character '_'", e.reason, "attachment_name: leading underscore");
   }
 
   // todo: form uploads, waiting for cmlenz' test case for form uploads
