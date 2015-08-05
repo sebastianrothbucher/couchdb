@@ -68,8 +68,6 @@ couchTests.attachment_paths = function(debug) {
     T(xhr.status == 201);
     var rev = JSON.parse(xhr.responseText).rev;
 
-    // twice ;-) (would make it work, but obviously not final)
-    CouchDB.request("GET", "/"+dbName+"/bin_doc");
     binAttDoc = db.open("bin_doc");
 
     T(binAttDoc._attachments["foo/bar.txt"] !== undefined);
@@ -142,8 +140,6 @@ couchTests.attachment_paths = function(debug) {
     T(xhr.status == 201);
     var rev = JSON.parse(xhr.responseText).rev;
 
-    // twice ;-) (would make it work, but obviously not final)
-    CouchDB.request("GET", "/"+dbName+"/_design/bin_doc");
     binAttDoc = db.open("_design/bin_doc");
 
     T(binAttDoc._attachments["foo/bar.txt"] !== undefined);
