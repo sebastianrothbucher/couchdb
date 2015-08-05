@@ -70,9 +70,7 @@ couchTests.attachment_names = function(debug) {
     body: JSON.stringify(docs)
   });
 
-  // on CentOS, the socket is arbitrarily closed - while the exact same works with curl
   TEquals(201, xhr.status, "attachment_name: bulk docs");
-
 
   // leading underscores
   var binAttDoc = {
