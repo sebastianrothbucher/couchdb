@@ -201,6 +201,10 @@ couchTests.attachments= function(debug) {
   var before = db.info().disk_size;
 
   // Compact it.
+  // compaction does not work in the cluster
+  var compxhr = CouchDB.request("POST", "/test_suite_db/_compact");
+  T(compxhr.status == 403);
+/* no more valid 
   T(db.compact().ok);
   T(db.last_req.status == 202);
   // compaction isn't instantaneous, loop until done
@@ -211,10 +215,10 @@ couchTests.attachments= function(debug) {
   // Compaction should reduce the database slightly, but not
   // orders of magnitude (unless attachments introduce sparseness)
   T(after > before * 0.1, "before: " + before + " after: " + after);
-
+*/
 
   // test large attachments - COUCHDB-366
-  var lorem = CouchDB.request("GET", "/_utils/script/test/lorem.txt").responseText;
+  var lorem = CouchDB.request("GET", "http://localhost:15986/_utils/script/test/lorem.txt").responseText;
 
   var xhr = CouchDB.request("PUT", "/test_suite_db/bin_doc5/lorem.txt", {
     headers:{"Content-Type":"text/plain;charset=utf-8"},
@@ -228,7 +232,7 @@ couchTests.attachments= function(debug) {
   TEqualsIgnoreCase("text/plain;charset=utf-8", xhr.getResponseHeader("Content-Type"));
 
   // test large inline attachment too
-  var lorem_b64 = CouchDB.request("GET", "/_utils/script/test/lorem_b64.txt").responseText;
+  var lorem_b64 = CouchDB.request("GET", "http://localhost:15986/_utils/script/test/lorem_b64.txt").responseText;
   var doc = db.open("bin_doc5", {attachments:true});
   T(doc._attachments["lorem.txt"].data == lorem_b64);
 
