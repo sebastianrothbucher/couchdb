@@ -146,22 +146,34 @@ function CouchDB(name, httpHeaders) {
     if (typeof(mapFun) != "string") {
       mapFun = mapFun.toSource ? mapFun.toSource() : "(" + mapFun.toString() + ")";
     }
-    body.map = mapFun;
+    var fkts = {};
+    fkts.map = mapFun;
     if (reduceFun != null) {
       if (typeof(reduceFun) != "string") {
         reduceFun = reduceFun.toSource ?
           reduceFun.toSource() : "(" + reduceFun.toString() + ")";
       }
-      body.reduce = reduceFun;
+      fkts.reduce = reduceFun;
     }
+    body.views = {};
+    body.views.t = fkts;
     if (options && options.options != undefined) {
         body.options = options.options;
         delete options.options;
     }
-    this.last_req = this.request("POST", this.uri + "_temp_view"
-      + encodeOptions(options), {
+    // we can no more have temp views - but need a UUID-ed view instead
+    var ddocName = "_design/" + JSON.parse(this.request("GET", this.uri.substring(0, this.uri.lastIndexOf("/", this.uri.length-2)) + "/_uuids").responseText).uuids[0];
+    CouchDB.maybeThrowError(this.last_req);
+    // create a design doc
+    this.last_req = this.request("PUT", this.uri + ddocName, {
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify(body)
+    });
+    CouchDB.maybeThrowError(this.last_req);
+    // now do the actual query
+    this.last_req = this.request("GET", this.uri + ddocName + "/_view/t"
+      + encodeOptions(options), {
+      headers: {"Content-Type": "application/json"}
     });
     CouchDB.maybeThrowError(this.last_req);
     return JSON.parse(this.last_req.responseText);
