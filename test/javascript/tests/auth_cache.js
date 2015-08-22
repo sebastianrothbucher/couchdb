@@ -26,14 +26,15 @@ couchTests.auth_cache = function(debug) {
   }
 
   var authDb = new CouchDB("test_suite_users", {"X-Couch-Full-Commit":"false"});
+  // for cluster, 2 properties are different
   var server_config = [
     {
-      section: "couch_httpd_auth",
+      section: "chttpd_auth",
       key: "authentication_db",
       value: authDb.name
     },
     {
-      section: "couch_httpd_auth",
+      section: "chttpd_auth",
       key: "auth_cache_size",
       value: "3"
     },
@@ -98,7 +99,6 @@ couchTests.auth_cache = function(debug) {
 
     hits_before = hits();
     misses_before = misses();
-
     T(CouchDB.login("fdmanana", "qwerty").ok);
     T(CouchDB.logout().ok);
 
@@ -262,6 +262,8 @@ couchTests.auth_cache = function(debug) {
 
 
   authDb.deleteDb();
+  // and re-create
+  authDb.createDb();
   run_on_modified_server(server_config, testFun);
 
   // cleanup

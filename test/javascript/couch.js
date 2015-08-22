@@ -452,7 +452,7 @@ CouchDB.requestStats = function(path, test) {
     query_arg = "?flush=true";
   }
 
-  var url = "/_stats/" + path.join("/") + query_arg;
+  var url = "http://localhost:15986/_stats/" + path.join("/") + query_arg;
   var stat = CouchDB.request("GET", url).responseText;
   return JSON.parse(stat);
 };
