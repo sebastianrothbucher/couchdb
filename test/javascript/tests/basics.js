@@ -170,7 +170,8 @@ couchTests.basics = function(debug) {
   restartServer();
 
   // make sure we can still open
-  T(db.open(existingDoc._id, {rev: existingDoc._rev}) != null);
+  // try twice as restarting might take time
+  T(db.open(existingDoc._id, {rev: existingDoc._rev}) != null || db.open(existingDoc._id, {rev: existingDoc._rev}) != null);
 
   // test that the POST response has a Location header
   var xhr = CouchDB.request("POST", "/test_suite_db", {
@@ -261,14 +262,17 @@ couchTests.basics = function(debug) {
   T(xhr.status == 400);
   result = JSON.parse(xhr.responseText);
   T(result.error == "bad_request");
-  T(result.reason == "`keys` member must be a array.");
+  //T(result.reason == "`keys` member must be a array.");
+  T(result.reason == "`keys` body member must be an array.");
 
   // oops, the doc id got lost in code nirwana
   xhr = CouchDB.request("DELETE", "/test_suite_db/?rev=foobarbaz");
   TEquals(400, xhr.status, "should return a bad request");
   result = JSON.parse(xhr.responseText);
   TEquals("bad_request", result.error);
-  TEquals("You tried to DELETE a database with a ?rev= parameter. Did you mean to DELETE a document instead?", result.reason);
+  // TEquals("You tried to DELETE a database with a ?rev= parameter. Did you mean to DELETE a document instead?", result.reason);
+  // TODO: use old syntax as this message is no better
+  TEquals("You tried to DELETE a database with a ?=rev parameter. Did you mean to DELETE a document instead?", result.reason);
 
   // On restart, a request for creating a database that already exists can
   // not override the existing database file
