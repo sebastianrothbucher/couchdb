@@ -163,20 +163,23 @@ function CouchDB(name, httpHeaders) {
     }
     // we can no more have temp views - but need a UUID-ed view instead
     var ddocName = "_design/" + JSON.parse(this.request("GET", this.uri.substring(0, this.uri.lastIndexOf("/", this.uri.length-2)) + "/_uuids").responseText).uuids[0];
-    CouchDB.maybeThrowError(this.last_req);
     // create a design doc
     this.last_req = this.request("PUT", this.uri + ddocName, {
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify(body)
     });
     CouchDB.maybeThrowError(this.last_req);
+    var ddocRev = JSON.parse(this.last_req.responseText).rev;
     // now do the actual query
     this.last_req = this.request("GET", this.uri + ddocName + "/_view/t"
       + encodeOptions(options), {
       headers: {"Content-Type": "application/json"}
     });
     CouchDB.maybeThrowError(this.last_req);
-    return JSON.parse(this.last_req.responseText);
+    var viewRes = JSON.parse(this.last_req.responseText);
+    this.last_req = this.request("DELETE", this.uri + ddocName + "?rev=" + ddocRev);
+    CouchDB.maybeThrowError(this.last_req);
+    return viewRes;
   };
 
   this.view = function(viewname, options, keys) {
