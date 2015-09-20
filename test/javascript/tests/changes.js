@@ -510,8 +510,9 @@ console.log(JSON.stringify(resp));
     var req = CouchDB.request("GET", "/test_suite_db/_changes?filter=erlang/foo");
     var resp = JSON.parse(req.responseText);
     T(resp.results.length === 2);
-    T(resp.results[0].id === "doc2");
-    T(resp.results[1].id === "doc4");
+    // there is a possibility we're unordered
+    T(resp.results[0].id === "doc2" || resp.results[1].id === "doc2");
+    T(resp.results[0].id === "doc4" || resp.results[1].id === "doc4");
 
     // test filtering on docids
     //
@@ -535,15 +536,17 @@ console.log(JSON.stringify(resp));
     var req = CouchDB.request("POST", "/test_suite_db/_changes?filter=_doc_ids", options);
     var resp = JSON.parse(req.responseText);
     T(resp.results.length === 2);
-    T(resp.results[0].id === "something");
-    T(resp.results[1].id === "anotherthing");
+    // there is a possibility we're unordered
+    T(resp.results[0].id === "something" || resp.results[1].id === "something");
+    T(resp.results[0].id === "anotherthing" || resp.results[1].id === "anotherthing");
 
     var docids = JSON.stringify(["something", "anotherthing", "andmore"]),
         req = CouchDB.request("GET", "/test_suite_db/_changes?filter=_doc_ids&doc_ids="+docids, options);
     var resp = JSON.parse(req.responseText);
     T(resp.results.length === 2);
-    T(resp.results[0].id === "something");
-    T(resp.results[1].id === "anotherthing");
+    // there is a possibility we're unordered
+    T(resp.results[0].id === "something" || resp.results[1].id === "something");
+    T(resp.results[0].id === "anotherthing" || resp.results[1].id === "anotherthing");
 
     var req = CouchDB.request("GET", "/test_suite_db/_changes?filter=_design");
     var resp = JSON.parse(req.responseText);
@@ -605,17 +608,21 @@ console.log(JSON.stringify(resp));
   req = CouchDB.request(
     "GET", "/"+ db.name + "/_changes?limit=1&filter=testdocs/testdocsonly");
   resp = JSON.parse(req.responseText);
-  TEquals(3, resp.last_seq);
+  // sequence: same as b4
+  //TEquals(3, resp.last_seq);
   TEquals(1, resp.results.length);
-  TEquals("0", resp.results[0].id);
+  // also, we can'g guarantee ordering
+  T(resp.results[0].id.match("[0-5]"));
 
   req = CouchDB.request(
     "GET", "/" + db.name + "/_changes?limit=2&filter=testdocs/testdocsonly");
   resp = JSON.parse(req.responseText);
-  TEquals(4, resp.last_seq);
+  // sequence: same as b4
+  //TEquals(4, resp.last_seq);
   TEquals(2, resp.results.length);
-  TEquals("0", resp.results[0].id);
-  TEquals("1", resp.results[1].id);
+  // also we can't guarantee ordering
+  T(resp.results[0].id.match("[0-5]"));
+  T(resp.results[1].id.match("[0-5]"));
 
   TEquals(0, CouchDB.requestStats(['couchdb', 'httpd', 'clients_requesting_changes'], true).value);
   CouchDB.request("GET", "/" + db.name + "/_changes");
@@ -637,13 +644,15 @@ console.log(JSON.stringify(resp));
   req = CouchDB.request("GET", "/" + db.name + "/_changes?style=all_docs");
   resp = JSON.parse(req.responseText);
 
-  TEquals(3, resp.last_seq);
+  // sequence: same as b4
+  //TEquals(3, resp.last_seq);
   TEquals(2, resp.results.length);
 
   req = CouchDB.request("GET", "/" + db.name + "/_changes?style=all_docs&since=2");
   resp = JSON.parse(req.responseText);
 
-  TEquals(3, resp.last_seq);
+  // sequence: same as b4
+  //TEquals(3, resp.last_seq);
   TEquals(1, resp.results.length);
   TEquals(2, resp.results[0].changes.length);
 
@@ -651,12 +660,12 @@ console.log(JSON.stringify(resp));
   T(db.deleteDb());
   T(db.createDb());
 
-  // create 4 documents... this assumes the update sequnce will start from 0 and get to 4
+  // create 4 documents... this assumes the update sequnce will start from 0 and get to 4 - which is no more the case in clustered setups
   db.save({"bop" : "foom"});
   db.save({"bop" : "foom"});
   db.save({"bop" : "foom"});
   db.save({"bop" : "foom"});
-
+// TODO: HIER: seq merken und aufsetzen
   // simulate an EventSource request with a Last-Event-ID header
   req = CouchDB.request("GET", "/test_suite_db/_changes?feed=eventsource&timeout=0&since=0",
         {"headers": {"Accept": "text/event-stream", "Last-Event-ID": "2"}});
