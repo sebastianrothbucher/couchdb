@@ -410,10 +410,11 @@ couchTests.design_docs = function(debug) {
     T(db.open(designDoc._id) == null);
     T(db.view("test/no_docs") == null);
 
-    T(db.ensureFullCommit().ok);
-    restartServer();
-    T(db.open(designDoc._id) == null);
-    T(db.view("test/no_docs") == null);
+// TODO: does 'ensureFullCommit' make any sense on clustering?
+//    T(db.ensureFullCommit().ok);
+//    restartServer();
+//    T(db.open(designDoc._id) == null);
+//    T(db.view("test/no_docs") == null);
 
     // trigger ddoc cleanup
     T(db.viewCleanup().ok);
