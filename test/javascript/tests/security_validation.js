@@ -247,95 +247,72 @@ couchTests.security_validation = function(debug) {
       T(db.open("foofoo") == null);
 
       // Now test replication
-      var AuthHeaders = {"WWW-Authenticate": "X-Couch-Test-Auth Christopher Lenz:dog food"};
-      var host = CouchDB.host;
-      var dbPairs = [
-        {source:"" + db_name + "_a",
-          target:"" + db_name + "_b"},
+      var AuthHeaders = {"Authorization": "Basic c3Bpa2U6ZG9n"}; // spike
+      adminDbA = new CouchDB("" + db_name + "_a", {"X-Couch-Full-Commit":"false"});
+      adminDbB = new CouchDB("" + db_name + "_b", {"X-Couch-Full-Commit":"false"});
+      var dbA = new CouchDB("" + db_name + "_a", AuthHeaders);
+      var dbB = new CouchDB("" + db_name + "_b", AuthHeaders);
+      // looping does not really add value as the scenario is the same anyway (there's nothing 2 be gained from it)
+      var A = CouchDB.protocol + CouchDB.host + "/" + db_name + "_a";
+      var B = CouchDB.protocol + CouchDB.host + "/" + db_name + "_b";
 
-        {source:"" + db_name + "_a",
-          target:{url: CouchDB.protocol + host + "/" + db_name + "_b",
-                  headers: AuthHeaders}},
+      // (the databases never exist b4 - and we made sure they're deleted below)
+      //adminDbA.deleteDb();
+      adminDbA.createDb();
+      //adminDbB.deleteDb();
+      adminDbB.createDb();
 
-        {source:{url:CouchDB.protocol + host + "/" + db_name + "_a",
-                 headers: AuthHeaders},
-          target:"" + db_name + "_b"},
+      // save and replicate a documents that will and will not pass our design
+      // doc validation function.
+      T(dbA.save({_id:"foo1",value:"a",author:"tom"}).ok);
+      T(dbA.save({_id:"foo2",value:"a",author:"spike"}).ok);
+      T(dbA.save({_id:"bad1",value:"a"}).ok);
 
-        {source:{url:CouchDB.protocol + host + "/" + db_name + "_a",
-                 headers: AuthHeaders},
-         target:{url:CouchDB.protocol + host + "/" + db_name + "_b",
-                 headers: AuthHeaders}},
-      ]
-      var adminDbA = new CouchDB("" + db_name + "_a", {"X-Couch-Full-Commit":"false"});
-      var adminDbB = new CouchDB("" + db_name + "_b", {"X-Couch-Full-Commit":"false"});
-      var dbA = new CouchDB("" + db_name + "_a",
-          {"WWW-Authenticate": "X-Couch-Test-Auth Christopher Lenz:dog food"});
-      var dbB = new CouchDB("" + db_name + "_b",
-          {"WWW-Authenticate": "X-Couch-Test-Auth Christopher Lenz:dog food"});
-      var xhr;
-      for (var testPair = 0; testPair < dbPairs.length; testPair++) {
-        var A = dbPairs[testPair].source
-        var B = dbPairs[testPair].target
+      T(CouchDB.replicate(A, B, {headers:AuthHeaders}).ok);
+      T(CouchDB.replicate(B, A, {headers:AuthHeaders}).ok);
 
-        adminDbA.deleteDb();
-        adminDbA.createDb();
-        adminDbB.deleteDb();
-        adminDbB.createDb();
+      T(dbA.open("foo1"));
+      T(dbB.open("foo1"));
+      T(dbA.open("foo2"));
+      T(dbB.open("foo2"));
 
-        // save and replicate a documents that will and will not pass our design
-        // doc validation function.
-        dbA.save({_id:"foo1",value:"a",author:"Noah Slater"});
-        dbA.save({_id:"foo2",value:"a",author:"Christopher Lenz"});
-        dbA.save({_id:"bad1",value:"a"});
+      // save the design doc to dbA
+      delete designDoc._rev; // clear rev from previous saves
+      T(adminDbA.save(designDoc).ok);
 
-        T(CouchDB.replicate(A, B, {headers:AuthHeaders}).ok);
-        T(CouchDB.replicate(B, A, {headers:AuthHeaders}).ok);
+      // no affect on already saved docs
+      T(dbA.open("bad1"));
 
-        T(dbA.open("foo1"));
-        T(dbB.open("foo1"));
-        T(dbA.open("foo2"));
-        T(dbB.open("foo2"));
+      // Update some docs on dbB. Since the design hasn't replicated, anything
+      // is allowed.
 
-        // save the design doc to dbA
-        delete designDoc._rev; // clear rev from previous saves
-        adminDbA.save(designDoc);
+      // this edit will fail validation on replication to dbA (no author)
+      T(dbB.save({_id:"bad2",value:"a"}).ok);
 
-        // no affect on already saved docs
-        T(dbA.open("bad1"));
+      // this edit will fail security on replication to dbA (wrong author
+      //  replicating the change)
+      var foo1 = dbB.open("foo1");
+      foo1.value = "b";
+      T(dbB.save(foo1).ok);
 
-        // Update some docs on dbB. Since the design hasn't replicated, anything
-        // is allowed.
+      // this is a legal edit
+      var foo2 = dbB.open("foo2");
+      foo2.value = "b";
+      T(dbB.save(foo2).ok);
 
-        // this edit will fail validation on replication to dbA (no author)
-        T(dbB.save({_id:"bad2",value:"a"}).ok);
+      var results = CouchDB.replicate({"url": B, "headers": AuthHeaders}, {"url": A, "headers": AuthHeaders}, {headers:AuthHeaders});
+      T(results.ok);
+      TEquals(1, results.history[0].docs_written);
+      TEquals(2, results.history[0].doc_write_failures);
 
-        // this edit will fail security on replication to dbA (wrong author
-        //  replicating the change)
-        var foo1 = dbB.open("foo1");
-        foo1.value = "b";
-        dbB.save(foo1);
+      // bad2 should not be on dbA
+      T(dbA.open("bad2") == null);
 
-        // this is a legal edit
-        var foo2 = dbB.open("foo2");
-        foo2.value = "b";
-        dbB.save(foo2);
+      // The edit to foo1 should not have replicated.
+      T(dbA.open("foo1").value == "a");
 
-        var results = CouchDB.replicate(B, A, {headers:AuthHeaders});
-
-        T(results.ok);
-
-        T(results.history[0].docs_written == 1);
-        T(results.history[0].doc_write_failures == 2);
-
-        // bad2 should not be on dbA
-        T(dbA.open("bad2") == null);
-
-        // The edit to foo1 should not have replicated.
-        T(dbA.open("foo1").value == "a");
-
-        // The edit to foo2 should have replicated.
-        T(dbA.open("foo2").value == "b");
-      }
+      // The edit to foo2 should have replicated.
+      T(dbA.open("foo2").value == "b");
     });
 
   // cleanup
